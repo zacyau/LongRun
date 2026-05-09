@@ -6,7 +6,7 @@
         乖离率: {{ deviationRate > 0 ? '+' : '' }}{{ deviationRate }}%
       </div>
     </div>
-    <v-chart class="chart" :option="chartOption" autoresize />
+    <v-chart ref="vChartRef" class="chart" :option="chartOption" :update-options="{ notMerge: false, replaceMerge: ['series'] }" />
   </div>
 </template>
 
@@ -14,9 +14,11 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 
 const isMobile = ref(false)
+const vChartRef = ref()
 
 function handleResize() {
   isMobile.value = window.innerWidth <= 768
+  vChartRef.value?.chart?.resize()
 }
 
 onMounted(() => {
@@ -316,7 +318,8 @@ const chartOption = computed(() => {
 .chart {
   width: 100%;
   height: 400px;
-  touch-action: pan-y;
+  touch-action: none;
+  will-change: transform;
 }
 
 @media (max-width: 768px) {

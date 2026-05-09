@@ -418,19 +418,32 @@ onUnmounted(() => {
   .time-range-selector {
     flex-direction: column;
     align-items: stretch;
+    touch-action: manipulation;
   }
 
   .range-buttons {
     justify-content: center;
+    touch-action: manipulation;
+  }
+
+  .range-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .custom-range {
     justify-content: center;
   }
 
+  .date-input {
+    touch-action: manipulation;
+  }
+
   .refresh-btn {
     margin-left: 0;
     justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 </style>

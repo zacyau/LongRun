@@ -30,6 +30,7 @@
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #EBEBEB;
   height: 56px;
+  touch-action: manipulation;
 }
 
 .nav-inner {

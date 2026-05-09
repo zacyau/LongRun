@@ -106,7 +106,14 @@
         </div>
       </div>
 
-      <div v-else-if="!store.loading" class="empty-state">
+      <div v-else-if="store.loading" class="loading-state">
+        <span class="loading-dot"></span>
+        <span class="loading-dot"></span>
+        <span class="loading-dot"></span>
+        <p>加载图表数据...</p>
+      </div>
+
+      <div v-else class="empty-state">
         <p>暂无数据</p>
       </div>
     </main>
@@ -188,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { useHongliStore } from '@/stores/hongliStore'
 import type { TimeRangeOption } from '@/types/anchor'
@@ -219,181 +226,160 @@ const COLORS = {
   rsi: '#333333',
   rsiMa: '#E53935',
   grid: '#F5F5F5',
-  text: '#666666',
 }
 
-let chart1: echarts.ECharts | null = null
-let chart2: echarts.ECharts | null = null
-let chart3: echarts.ECharts | null = null
-let chart4: echarts.ECharts | null = null
+const chart1 = ref<echarts.ECharts | null>(null)
+const chart2 = ref<echarts.ECharts | null>(null)
+const chart3 = ref<echarts.ECharts | null>(null)
+const chart4 = ref<echarts.ECharts | null>(null)
 
 function initCharts() {
-  if (chart1Ref.value) chart1 = echarts.init(chart1Ref.value)
-  if (chart2Ref.value) chart2 = echarts.init(chart2Ref.value)
-  if (chart3Ref.value) chart3 = echarts.init(chart3Ref.value)
-  if (chart4Ref.value) chart4 = echarts.init(chart4Ref.value)
+  if (chart1Ref.value && !chart1.value) chart1.value = echarts.init(chart1Ref.value)
+  if (chart2Ref.value && !chart2.value) chart2.value = echarts.init(chart2Ref.value)
+  if (chart3Ref.value && !chart3.value) chart3.value = echarts.init(chart3Ref.value)
+  if (chart4Ref.value && !chart4.value) chart4.value = echarts.init(chart4Ref.value)
 }
 
 function resizeCharts() {
-  chart1?.resize()
-  chart2?.resize()
-  chart3?.resize()
-  chart4?.resize()
+  chart1.value?.resize()
+  chart2.value?.resize()
+  chart3.value?.resize()
+  chart4.value?.resize()
 }
 
-function makeGrid(top = 44) {
-  return { left: 52, right: 20, top, bottom: 24 }
-}
-
-function makeXAxis(dates: string[]) {
+function buildChart1Option(d: any, isMobile: boolean) {
   return {
-    type: 'category' as const,
-    data: dates,
-    boundaryGap: false,
-    axisLine: { show: false },
-    axisTick: { show: false },
-    axisLabel: { color: '#AAAAAA', fontSize: 10, interval: 400 },
-    splitLine: { show: false },
-  }
-}
-
-function makeYAxis(opts: { formatter?: string | ((v: number) => string); min?: number; max?: number } = {}) {
-  return {
-    type: 'value' as const,
-    min: opts.min,
-    max: opts.max,
-    axisLine: { show: false },
-    axisTick: { show: false },
-    axisLabel: { color: '#AAAAAA', fontSize: 10, formatter: opts.formatter },
-    splitLine: { lineStyle: { color: COLORS.grid, width: 1 } },
-  }
-}
-
-function baseTooltip() {
-  return {
-    trigger: 'axis' as const,
-    confine: true,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderColor: '#E8E8E8',
-    borderWidth: 1,
-    padding: [8, 12],
-    textStyle: { color: '#333', fontSize: 12 },
-    axisPointer: { type: 'cross' as const, lineStyle: { color: '#DDD', type: 'dashed' as const } },
-  }
-}
-
-function renderChart1() {
-  if (!chart1 || !store.data) return
-  const d = store.data.chart1
-  chart1.setOption({
-    tooltip: { ...baseTooltip(), trigger: 'axis' },
+    tooltip: { trigger: 'axis', confine: true, backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#E8E8E8', borderWidth: 1, padding: [8, 12], textStyle: { color: '#333', fontSize: 12 }, axisPointer: { type: 'cross', lineStyle: { color: '#DDD', type: 'dashed' } } },
     legend: { show: false },
-    grid: makeGrid(24),
-    xAxis: makeXAxis(d.dates),
-    yAxis: makeYAxis({ formatter: (v: number) => v.toFixed(0) }),
+    grid: { left: 52, right: 20, top: 24, bottom: 24 },
+    xAxis: { type: 'category', data: d.dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, interval: isMobile ? 1400 : 400 }, splitLine: { show: false } },
+    yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, formatter: (v: number) => v.toFixed(0) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
     series: [
-      { name: '中证红利', type: 'line', data: d.hongli, smooth: 0.3, color: COLORS.hongli, symbol: 'none', lineStyle: { width: 1.5 } },
-      { name: '国证A股', type: 'line', data: d.guozheng, smooth: 0.3, color: COLORS.guozheng, symbol: 'none', lineStyle: { width: 1.5 } },
-    ]
-  })
+      { name: '中证红利', type: 'line', data: d.hongli, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.hongli } },
+      { name: '国证A股', type: 'line', data: d.guozheng, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.guozheng } },
+    ],
+  }
 }
 
-function renderChart2() {
-  if (!chart2 || !store.data) return
-  const d = store.data.chart2
-  chart2.setOption({
-    tooltip: baseTooltip(),
+function buildChart2Option(d: any, isMobile: boolean) {
+  const dates = d.dates as string[]
+  const upper = d.upper as (number | null)[]
+  const lower = d.lower as (number | null)[]
+  const N = dates.length
+  const upperValid: number[] = upper.map((v, i) => v ?? (lower[i] ?? 0))
+  const lowerValid: number[] = lower.map((v, i) => v ?? (upper[i] ?? 0))
+
+  return {
+    tooltip: { trigger: 'axis', confine: true, backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#E8E8E8', borderWidth: 1, padding: [8, 12], textStyle: { color: '#333', fontSize: 12 }, axisPointer: { type: 'cross', lineStyle: { color: '#DDD', type: 'dashed' } } },
     legend: { show: false },
-    grid: makeGrid(24),
-    xAxis: makeXAxis(d.dates),
-    yAxis: makeYAxis({ formatter: (v: number) => v.toFixed(2) }),
+    grid: { left: 52, right: 20, top: 24, bottom: 24 },
+    xAxis: { type: 'category', data: dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, interval: isMobile ? 1400 : 400 }, splitLine: { show: false } },
+    yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, formatter: (v: number) => v.toFixed(2) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
     series: [
-      { name: '上轨', type: 'line', data: d.upper, smooth: 0.3, color: COLORS.bollingerUpper, symbol: 'none', lineStyle: { width: 1.5, type: 'dotted' as const }, z: 3 },
+      { name: '上轨', type: 'line', data: d.upper, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dotted', color: COLORS.bollingerUpper }, z: 3 },
       {
         name: '布林带填充',
         type: 'custom',
         renderItem: (_params: any, api: any) => {
-          const xData = d.dates
-          const upperData = d.upper
-          const lowerData = d.lower
-          const N = xData.length
           if (N === 0) return null
-
-          const points: [number, number][] = []
+          const pts: [number, number][] = new Array(N * 2)
           for (let i = 0; i < N; i++) {
-            const x = api.coord([xData[i], 0])[0]
-            const yTop = api.coord([xData[i], upperData[i] ?? 0])[1]
-            points.push([x, yTop])
+            const x = api.coord([i, upperValid[i]])[0]
+            const yUp = api.coord([i, upperValid[i]])[1]
+            pts[i] = [x, yUp]
           }
           for (let i = N - 1; i >= 0; i--) {
-            const x = api.coord([xData[i], 0])[0]
-            const yBot = api.coord([xData[i], lowerData[i] ?? 0])[1]
-            points.push([x, yBot])
+            const x = api.coord([i, lowerValid[i]])[0]
+            const yDown = api.coord([i, lowerValid[i]])[1]
+            pts[N + (N - 1 - i)] = [x, yDown]
           }
-
-          return {
-            type: 'polygon',
-            shape: { points },
-            style: { fill: 'rgba(224, 224, 224, 0.6)', stroke: 'none' },
-            z: 0,
-          }
+          return { type: 'polygon', shape: { points: pts }, style: { fill: 'rgba(224, 224, 224, 0.6)', stroke: 'none' }, z: 0 }
         },
-        data: d.upper as any,
+        data: [0],
         z: 0,
+        silent: true,
       },
-      { name: '下轨', type: 'line', data: d.lower, smooth: 0.3, color: COLORS.bollingerLower, symbol: 'none', lineStyle: { width: 1.5, type: 'dotted' as const }, z: 2 },
-      { name: 'MA242', type: 'line', data: d.ma242, smooth: 0.3, color: COLORS.ma242, symbol: 'none', lineStyle: { width: 1.5, type: 'dashed' as const } },
-      { name: '比值', type: 'line', data: d.ratio, smooth: 0.3, color: COLORS.ratio, symbol: 'none', lineStyle: { width: 1.5 } },
-    ]
-  })
+      { name: '下轨', type: 'line', data: d.lower, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dotted', color: COLORS.bollingerLower }, z: 2 },
+      { name: 'MA242', type: 'line', data: d.ma242, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dashed', color: COLORS.ma242 } },
+      { name: '比值', type: 'line', data: d.ratio, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.ratio } },
+    ],
+  }
 }
 
-function renderChart3() {
-  if (!chart3 || !store.data) return
-  const d = store.data.chart3
-  chart3.setOption({
-    tooltip: baseTooltip(),
+function buildChart3Option(d: any, isMobile: boolean) {
+  return {
+    tooltip: { trigger: 'axis', confine: true, backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#E8E8E8', borderWidth: 1, padding: [8, 12], textStyle: { color: '#333', fontSize: 12 }, axisPointer: { type: 'cross', lineStyle: { color: '#DDD', type: 'dashed' } } },
     legend: { show: false },
-    grid: makeGrid(24),
-    xAxis: makeXAxis(d.dates),
-    yAxis: makeYAxis({ formatter: (v: number) => `${v.toFixed(1)}%` }),
+    grid: { left: 52, right: 20, top: 24, bottom: 24 },
+    xAxis: { type: 'category', data: d.dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, interval: isMobile ? 1400 : 400 }, splitLine: { show: false } },
+    yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, formatter: (v: number) => `${v.toFixed(1)}%` }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
     series: [
-      { name: '收益差', type: 'line', data: d.diff, smooth: 0.3, color: COLORS.diff, symbol: 'none', lineStyle: { width: 1.5 } },
-      { name: 'MA242', type: 'line', data: d.diff_ma242, smooth: 0.3, color: COLORS.diffMa, symbol: 'none', lineStyle: { width: 1.5, type: 'dashed' as const } },
-    ]
-  })
+      { name: '收益差', type: 'line', data: d.diff, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.diff } },
+      { name: 'MA242', type: 'line', data: d.diff_ma242, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dashed', color: COLORS.diffMa } },
+    ],
+  }
 }
 
-function renderChart4() {
-  if (!chart4 || !store.data) return
-  const d = store.data.chart4
-  chart4.setOption({
-    tooltip: baseTooltip(),
+function buildChart4Option(d: any, isMobile: boolean) {
+  return {
+    tooltip: { trigger: 'axis', confine: true, backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#E8E8E8', borderWidth: 1, padding: [8, 12], textStyle: { color: '#333', fontSize: 12 }, axisPointer: { type: 'cross', lineStyle: { color: '#DDD', type: 'dashed' } } },
     legend: { show: false },
-    grid: makeGrid(24),
-    xAxis: makeXAxis(d.dates),
-    yAxis: makeYAxis({ min: 0, max: 100, formatter: (v: number) => v.toFixed(0) }),
+    grid: { left: 52, right: 20, top: 24, bottom: 24 },
+    xAxis: { type: 'category', data: d.dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, interval: isMobile ? 1400 : 400 }, splitLine: { show: false } },
+    yAxis: { type: 'value', min: 0, max: 100, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, formatter: (v: number) => v.toFixed(0) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
     series: [
-      { name: 'RSI14', type: 'line', data: d.rsi, smooth: 0.3, color: COLORS.rsi, symbol: 'none', lineStyle: { width: 1.5 } },
-      { name: 'MA242', type: 'line', data: d.rsi_ma242, smooth: 0.3, color: COLORS.rsiMa, symbol: 'none', lineStyle: { width: 1.5, type: 'dashed' as const } },
-    ]
-  })
+      { name: 'RSI14', type: 'line', data: d.rsi, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.rsi } },
+      { name: 'MA242', type: 'line', data: d.rsi_ma242, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dashed', color: COLORS.rsiMa } },
+    ],
+  }
 }
+
+function renderAllCharts() {
+  if (!store.data) return
+  const isMobile = window.innerWidth <= 768
+  const d1 = store.data.chart1
+  const d2 = store.data.chart2
+  const d3 = store.data.chart3
+  const d4 = store.data.chart4
+  chart1.value?.setOption(buildChart1Option(d1, isMobile), { notMerge: false })
+  chart2.value?.setOption(buildChart2Option(d2, isMobile), { notMerge: false })
+  chart3.value?.setOption(buildChart3Option(d3, isMobile), { notMerge: false })
+  chart4.value?.setOption(buildChart4Option(d4, isMobile), { notMerge: false })
+}
+
+let resizeTimer: ReturnType<typeof setTimeout> | null = null
+function onResize() {
+  if (resizeTimer) clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(() => {
+    resizeCharts()
+    renderAllCharts()
+  }, 100)
+}
+
+onMounted(() => {
+  window.addEventListener('resize', onResize, { passive: true })
+  store.fetchData()
+})
+
+onUnmounted(() => {
+  chart1.value?.dispose()
+  chart2.value?.dispose()
+  chart3.value?.dispose()
+  chart4.value?.dispose()
+  chart1.value = null
+  chart2.value = null
+  chart3.value = null
+  chart4.value = null
+  window.removeEventListener('resize', onResize)
+})
 
 watch(() => store.data, () => {
   nextTick(() => {
-    initCharts()
-    resizeCharts()
-    renderChart1()
-    renderChart2()
-    renderChart3()
-    renderChart4()
+    nextTick(() => {
+      initCharts()
+      renderAllCharts()
+    })
   })
-}, { immediate: false })
-
-onMounted(() => {
-  window.addEventListener('resize', resizeCharts, { passive: true })
-  store.fetchData()
 })
 </script>
 
@@ -401,13 +387,14 @@ onMounted(() => {
 .hongli-view {
   min-height: calc(100vh - 56px);
   background: #F7F8FA;
-  touch-action: pan-y;
+  touch-action: manipulation;
 }
 
 .hongli-header {
   background: #fff;
   border-bottom: 1px solid #EBEBEB;
   padding: 20px 32px;
+  touch-action: manipulation;
 }
 
 .header-inner {
@@ -489,7 +476,7 @@ onMounted(() => {
   max-width: 1280px;
   margin: 0 auto;
   padding: 24px 32px;
-  touch-action: pan-y;
+  touch-action: manipulation;
 }
 
 .error-banner {
@@ -627,7 +614,8 @@ onMounted(() => {
 .chart-box {
   width: 100%;
   height: 280px;
-  touch-action: pan-y;
+  touch-action: none;
+  will-change: transform;
 }
 
 .empty-state {
@@ -635,6 +623,34 @@ onMounted(() => {
   padding: 60px;
   color: #999;
   font-size: 14px;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 60px;
+  color: #999;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2962FF;
+  animation: dotBounce 1.2s infinite ease-in-out;
+}
+
+.loading-dot:nth-child(2) { animation-delay: 0.15s; }
+.loading-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.4); opacity: 0.3; }
+  40% { transform: scale(1.2); opacity: 1; }
 }
 
 /* Modal */

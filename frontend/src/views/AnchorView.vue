@@ -86,7 +86,7 @@ onMounted(() => {
   min-height: calc(100vh - 56px);
   display: flex;
   flex-direction: column;
-  touch-action: pan-y;
+  touch-action: manipulation;
 }
 
 .anchor-header {
@@ -96,6 +96,7 @@ onMounted(() => {
   position: sticky;
   top: 56px;
   z-index: 50;
+  touch-action: manipulation;
 }
 
 .header-inner {
@@ -176,7 +177,7 @@ onMounted(() => {
   flex: 1;
   padding: 24px 32px;
   background: #F7F8FA;
-  touch-action: pan-y;
+  touch-action: manipulation;
 }
 
 .charts-container {
@@ -189,7 +190,7 @@ onMounted(() => {
 
 .chart-section {
   position: relative;
-  touch-action: pan-y;
+  touch-action: manipulation;
 }
 
 .main-chart-section {
