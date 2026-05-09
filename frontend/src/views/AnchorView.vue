@@ -94,9 +94,6 @@ onMounted(() => {
   background: var(--color-bg-card);
   border-bottom: 1px solid var(--color-border-default);
   padding: var(--space-5) var(--page-padding);
-  position: sticky;
-  top: var(--header-height);
-  z-index: 50;
   touch-action: manipulation;
 }
 

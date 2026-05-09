@@ -32,12 +32,12 @@
   border-bottom: 1px solid var(--color-border-light);
   height: var(--header-height);
   touch-action: manipulation;
+  padding: 0 var(--page-padding);
 }
 
 .nav-inner {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 0 var(--page-padding);
   height: 100%;
   display: flex;
   align-items: center;
@@ -97,7 +97,7 @@
 }
 
 @media (max-width: 768px) {
-  .nav-inner {
+  .nav-bar {
     padding: 0 var(--page-padding-mobile);
   }
   .nav-link {
