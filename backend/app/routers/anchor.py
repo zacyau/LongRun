@@ -1,0 +1,116 @@
+from fastapi import APIRouter, HTTPException, Query
+from typing import Optional
+from datetime import datetime
+import asyncio
+import logging
+
+from app.models.schemas import ChartDataResponse, HealthResponse
+from app.services.baostock_service import sina_data_service
+from app.services.indicator_service import indicator_service
+from app.services.cache_service import cache_service
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/v1/anchor", tags=["五年之锚"])
+
+DEFAULT_INDEX_CODE = "sz.399317"
+_FETCH_TIMEOUT = 30
+
+
+@router.get("/data", response_model=ChartDataResponse)
+async def get_chart_data(
+    index_code: str = Query(default=DEFAULT_INDEX_CODE, description="指数代码"),
+    start_date: Optional[str] = Query(default=None, description="开始日期 YYYY-MM-DD"),
+    end_date: Optional[str] = Query(default=None, description="结束日期 YYYY-MM-DD")
+):
+    try:
+        df = await asyncio.wait_for(
+            asyncio.to_thread(sina_data_service.update_data, index_code),
+            timeout=_FETCH_TIMEOUT
+        )
+
+        if df.empty:
+            raise HTTPException(status_code=404, detail="未获取到数据")
+
+        chart_data = indicator_service.prepare_chart_data(df)
+
+        if start_date:
+            start_idx = next((i for i, d in enumerate(chart_data['dates']) if d >= start_date), None)
+            if start_idx is not None:
+                chart_data = {k: v[start_idx:] if isinstance(v, list) else v
+                              for k, v in chart_data.items()}
+            else:
+                chart_data = {k: ([] if isinstance(v, list) else None) for k, v in chart_data.items()}
+
+        if end_date:
+            end_idx = next((i for i, d in enumerate(chart_data['dates']) if d > end_date), None)
+            if end_idx is not None:
+                chart_data = {k: v[:end_idx] if isinstance(v, list) else v
+                              for k, v in chart_data.items()}
+
+        if not chart_data['dates']:
+            raise HTTPException(status_code=404, detail="指定日期范围内无数据")
+
+        return ChartDataResponse(**chart_data)
+
+    except asyncio.TimeoutError:
+        logger.error("获取图表数据超时")
+        raise HTTPException(status_code=504, detail="数据获取超时，请稍后重试")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取图表数据失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取数据失败: {str(e)}")
+
+
+@router.get("/health", response_model=HealthResponse)
+async def health_check():
+    try:
+        last_update = cache_service.get_last_update(DEFAULT_INDEX_CODE)
+        return HealthResponse(
+            status="ok",
+            last_update=last_update,
+            message="服务运行正常"
+        )
+    except Exception as e:
+        return HealthResponse(
+            status="error",
+            last_update=None,
+            message=f"服务异常: {str(e)}"
+        )
+
+
+@router.post("/refresh")
+async def refresh_data(index_code: str = DEFAULT_INDEX_CODE):
+    try:
+        df = await asyncio.wait_for(
+            asyncio.to_thread(sina_data_service.fetch_history_data, index_code),
+            timeout=_FETCH_TIMEOUT
+        )
+
+        if df.empty:
+            raise HTTPException(status_code=404, detail="未获取到数据")
+
+        records = df.to_dict('records')
+        cache_service.save_stock_data(index_code, records)
+        cache_service.set_last_update(
+            index_code,
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+        return {
+            "message": "数据刷新成功",
+            "records_count": len(records),
+            "date_range": {
+                "start": df['date'].min().strftime("%Y-%m-%d"),
+                "end": df['date'].max().strftime("%Y-%m-%d")
+            }
+        }
+
+    except asyncio.TimeoutError:
+        logger.error("刷新数据超时")
+        raise HTTPException(status_code=504, detail="数据刷新超时，请稍后重试")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"刷新数据失败: {e}")
+        raise HTTPException(status_code=500, detail=f"刷新数据失败: {str(e)}")

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite3
+venv/
+.venv/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Env
+.env
+
+# IDE
+.trae/
+.idea/
+.vscode/
+
+# Misc
+*.log
+.DS_Store
+anchor_temp/
+hongli_temp/
+macdv_temp/
