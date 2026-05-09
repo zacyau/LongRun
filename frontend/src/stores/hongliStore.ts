@@ -59,6 +59,7 @@ export const useHongliStore = defineStore('hongli', () => {
     loading.value = true
     error.value = null
     try {
+      await hongliApi.refreshData()
       const { start, end } = calculateDateRange(selectedRange.value)
       const res = await hongliApi.getData(start || undefined, end || undefined)
       data.value = res

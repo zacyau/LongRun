@@ -86,6 +86,7 @@ onMounted(() => {
   min-height: calc(100vh - 56px);
   display: flex;
   flex-direction: column;
+  touch-action: pan-y;
 }
 
 .anchor-header {
@@ -175,6 +176,7 @@ onMounted(() => {
   flex: 1;
   padding: 24px 32px;
   background: #F7F8FA;
+  touch-action: pan-y;
 }
 
 .charts-container {
@@ -187,6 +189,7 @@ onMounted(() => {
 
 .chart-section {
   position: relative;
+  touch-action: pan-y;
 }
 
 .main-chart-section {

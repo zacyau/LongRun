@@ -392,7 +392,7 @@ watch(() => store.data, () => {
 }, { immediate: false })
 
 onMounted(() => {
-  window.addEventListener('resize', resizeCharts)
+  window.addEventListener('resize', resizeCharts, { passive: true })
   store.fetchData()
 })
 </script>
@@ -401,6 +401,7 @@ onMounted(() => {
 .hongli-view {
   min-height: calc(100vh - 56px);
   background: #F7F8FA;
+  touch-action: pan-y;
 }
 
 .hongli-header {
@@ -488,6 +489,7 @@ onMounted(() => {
   max-width: 1280px;
   margin: 0 auto;
   padding: 24px 32px;
+  touch-action: pan-y;
 }
 
 .error-banner {
@@ -625,6 +627,7 @@ onMounted(() => {
 .chart-box {
   width: 100%;
   height: 280px;
+  touch-action: pan-y;
 }
 
 .empty-state {

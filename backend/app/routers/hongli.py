@@ -4,6 +4,7 @@ from typing import Optional
 import logging
 
 from app.services.hongli_service import get_all_data
+from app.services.cache_service import cache_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/hongli", tags=["红利之美"])
@@ -26,13 +27,20 @@ async def get_compare_data(
 
 @router.get("/health")
 async def health():
-    return {"status": "ok", "time": datetime.now().isoformat()}
+    last_hongli = cache_service.get_last_update("sh515180")
+    last_guozheng = cache_service.get_last_update("sz399317")
+    return {
+        "status": "ok",
+        "time": datetime.now().isoformat(),
+        "last_update_hongli": last_hongli,
+        "last_update_guozheng": last_guozheng,
+    }
 
 
 @router.post("/refresh")
 async def refresh_data():
     try:
-        data = get_all_data()
+        data = get_all_data(force_refresh=True)
         return {
             "message": "数据刷新成功",
             "generated_at": data["generated_at"]

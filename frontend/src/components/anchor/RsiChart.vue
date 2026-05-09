@@ -29,6 +29,39 @@ onUnmounted(() => {
 })
 
 const xAxisInterval = computed(() => isMobile.value ? 1400 : 500)
+const dataZoomConfig = computed(() => {
+  if (isMobile.value) {
+    return [{
+      type: 'slider' as const,
+      start: 0,
+      end: 100,
+      height: 20,
+      bottom: 10,
+      handleSize: '80%',
+      showDetail: false,
+      borderColor: 'transparent',
+      backgroundColor: '#f5f5f5',
+      fillerColor: 'rgba(41, 98, 255, 0.1)',
+      handleStyle: { color: '#2962FF' }
+    }]
+  }
+  return [
+    { type: 'inside' as const, start: 0, end: 100 },
+    {
+      type: 'slider' as const,
+      start: 0,
+      end: 100,
+      height: 20,
+      bottom: 10,
+      handleSize: '80%',
+      showDetail: false,
+      borderColor: 'transparent',
+      backgroundColor: '#f5f5f5',
+      fillerColor: 'rgba(41, 98, 255, 0.1)',
+      handleStyle: { color: '#2962FF' }
+    }
+  ]
+})
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -125,28 +158,7 @@ const chartOption = computed(() => {
         }
       }
     },
-    dataZoom: [
-      {
-        type: 'inside',
-        start: 0,
-        end: 100
-      },
-      {
-        type: 'slider',
-        start: 0,
-        end: 100,
-        height: 20,
-        bottom: 10,
-        handleSize: '80%',
-        showDetail: false,
-        borderColor: 'transparent',
-        backgroundColor: '#f5f5f5',
-        fillerColor: 'rgba(41, 98, 255, 0.1)',
-        handleStyle: {
-          color: '#2962FF'
-        }
-      }
-    ],
+    dataZoom: dataZoomConfig.value,
     series: [
       {
         name: 'RSI14',
@@ -220,6 +232,7 @@ const chartOption = computed(() => {
 .chart {
   width: 100%;
   height: 280px;
+  touch-action: pan-y;
 }
 
 @media (max-width: 768px) {

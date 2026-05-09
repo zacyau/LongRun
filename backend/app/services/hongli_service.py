@@ -1,6 +1,7 @@
 """
 中证红利 vs 国证A股 对比分析服务
 数据源: 新浪财经 CN_MarketData.getKLineData
+缓存: SQLite (与五年之锚共享缓存服务)
 """
 import math
 import pandas as pd
@@ -8,14 +9,33 @@ import numpy as np
 import requests
 from datetime import datetime, timedelta
 from typing import Optional
+import logging
+
+from app.services.cache_service import cache_service
+
+logger = logging.getLogger(__name__)
 
 INDEX_CONFIGS = {
-    "hongli": {"symbol": "sh515180", "name": "中证红利"},
-    "guozheng": {"symbol": "sz399317", "name": "国证A股"},
+    "hongli": {"symbol": "sh515180", "name": "中证红利", "code": "sh515180"},
+    "guozheng": {"symbol": "sz399317", "name": "国证A股", "code": "sz399317"},
 }
 
+HONGLI_DATALEN = 2500
 
-def fetch_kline_sina(symbol: str, datalen: int = 2500) -> pd.DataFrame:
+
+def _raw_kline_to_df(rows: list) -> pd.DataFrame:
+    """将缓存中的原始K线数据转为DataFrame"""
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.sort_values("date").reset_index(drop=True)
+    df["return"] = df["close"].pct_change().fillna(0)
+    df["total_return"] = (1 + df["return"]).cumprod() * 1000
+    return df
+
+
+def fetch_kline_sina(symbol: str, datalen: int = HONGLI_DATALEN) -> pd.DataFrame:
     url = (
         f"https://money.finance.sina.com.cn/quotes_service/api/json_v2.php"
         f"/CN_MarketData.getKLineData?symbol={symbol}&scale=240&ma=5&datalen={datalen}"
@@ -45,6 +65,49 @@ def fetch_kline_sina(symbol: str, datalen: int = 2500) -> pd.DataFrame:
     return df
 
 
+class HongliDataService:
+    def update_data(self, index_code: str, symbol: str) -> pd.DataFrame:
+        """检查缓存，有效则直接返回缓存数据；否则从新浪获取并写入缓存"""
+        if cache_service.is_cache_valid(index_code):
+            cached = cache_service.get_stock_data(index_code)
+            if cached:
+                logger.info(f"使用缓存数据: {index_code}")
+                return _raw_kline_to_df(cached)
+
+        logger.info(f"从新浪获取数据: {index_code} -> {symbol}")
+        df = fetch_kline_sina(symbol)
+        if df.empty:
+            raise Exception(f"获取 {index_code} 数据为空")
+
+        self._save_to_cache(index_code, df)
+        return df
+
+    def refresh_data(self, index_code: str, symbol: str) -> pd.DataFrame:
+        """强制从新浪重新获取数据并更新缓存"""
+        logger.info(f"强制刷新: {index_code}")
+        df = fetch_kline_sina(symbol)
+        if df.empty:
+            raise Exception(f"获取 {index_code} 数据为空")
+
+        self._save_to_cache(index_code, df)
+        return df
+
+    def _save_to_cache(self, index_code: str, df: pd.DataFrame):
+        records = df[["date", "open", "high", "low", "close", "volume"]].copy()
+        records["date"] = records["date"].dt.strftime("%Y-%m-%d")
+        records["amount"] = 0.0
+        records["adjustflag"] = "1"
+        cache_service.save_stock_data(index_code, records.to_dict("records"))
+        cache_service.set_last_update(
+            index_code,
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+        logger.info(f"{index_code} 缓存写入完成，共 {len(records)} 条")
+
+
+hongli_data_service = HongliDataService()
+
+
 def _slice_by_date(series: list, dates: list, start: Optional[str], end: Optional[str]) -> tuple:
     if not dates:
         return [], []
@@ -65,10 +128,14 @@ def _slice_by_date(series: list, dates: list, start: Optional[str], end: Optiona
     return dates[start_idx:end_idx + 1], series[start_idx:end_idx + 1]
 
 
-def get_all_data(start_date: Optional[str] = None, end_date: Optional[str] = None) -> dict:
+def get_all_data(start_date: Optional[str] = None, end_date: Optional[str] = None,
+                 force_refresh: bool = False) -> dict:
     dfs = {}
     for key, config in INDEX_CONFIGS.items():
-        df = fetch_kline_sina(config["symbol"])
+        if force_refresh:
+            df = hongli_data_service.refresh_data(config["code"], config["symbol"])
+        else:
+            df = hongli_data_service.update_data(config["code"], config["symbol"])
         if df.empty:
             raise Exception(f"获取 {config['name']} 数据失败")
         dfs[key] = df

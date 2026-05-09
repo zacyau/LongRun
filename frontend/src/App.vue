@@ -20,6 +20,7 @@ import NavBar from '@/components/layout/NavBar.vue'
 
 html {
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -30,14 +31,17 @@ body {
   color: #1A1A1A;
   background: #F7F8FA;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 #app {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app-root {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -45,6 +49,13 @@ body {
 .app-main {
   flex: 1;
   padding-top: 56px;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  html, body {
+    overscroll-behavior-y: none;
+  }
 }
 
 ::selection {
