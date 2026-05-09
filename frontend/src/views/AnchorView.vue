@@ -3,7 +3,6 @@
     <header class="anchor-header">
       <div class="header-inner">
         <div class="header-brand">
-          <div class="brand-tag">技术分析</div>
           <div class="brand-info">
             <h1 class="header-title">国证A股指数 <span class="title-sep">·</span> 五年之锚</h1>
             <p class="header-subtitle">SMA1210 ±15% 包络线 · RSI 周期 · 滚动最大回撤</p>
@@ -33,13 +32,15 @@
           <LoadingOverlay :loading="store.loading" />
           <MainChart :data="store.data" />
         </div>
-        <div class="chart-section">
-          <LoadingOverlay :loading="store.loading" />
-          <RsiChart :data="store.data" />
-        </div>
-        <div class="chart-section">
-          <LoadingOverlay :loading="store.loading" />
-          <DrawdownChart :data="store.data" />
+        <div class="sub-charts">
+          <div class="chart-section">
+            <LoadingOverlay :loading="store.loading" />
+            <RsiChart :data="store.data" />
+          </div>
+          <div class="chart-section">
+            <LoadingOverlay :loading="store.loading" />
+            <DrawdownChart :data="store.data" />
+          </div>
         </div>
       </div>
     </main>
@@ -83,65 +84,52 @@ onMounted(() => {
 
 <style scoped>
 .anchor-view {
-  min-height: calc(100vh - 56px);
+  min-height: calc(100vh - var(--header-height));
   display: flex;
   flex-direction: column;
   touch-action: manipulation;
 }
 
 .anchor-header {
-  background: #ffffff;
-  border-bottom: 1px solid #EBEBEB;
-  padding: 18px 32px;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-default);
+  padding: var(--space-5) var(--page-padding);
   position: sticky;
-  top: 56px;
+  top: var(--header-height);
   z-index: 50;
   touch-action: manipulation;
 }
 
 .header-inner {
-  max-width: 1280px;
+  max-width: var(--max-width);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .header-brand {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-}
-
-.brand-tag {
-  background: #1A1A1A;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 3px;
-  letter-spacing: 0.05em;
-  margin-top: 4px;
-  white-space: nowrap;
 }
 
 .header-title {
-  font-size: 20px;
+  font-size: var(--text-2xl);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-primary);
   margin: 0 0 4px;
   letter-spacing: -0.01em;
 }
 
 .title-sep {
-  color: #CCC;
+  color: var(--color-border-default);
   font-weight: 400;
 }
 
 .header-subtitle {
-  font-size: 13px;
-  color: #999;
+  font-size: var(--text-base);
+  color: var(--color-text-tertiary);
   margin: 0;
 }
 
@@ -158,34 +146,40 @@ onMounted(() => {
   justify-content: center;
   width: 34px;
   height: 34px;
-  border: 1px solid #E8E8E8;
-  border-radius: 7px;
-  background: #FAFAFA;
-  color: #888;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-tertiary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
 .guide-btn:hover {
-  background: #F0F0F0;
-  border-color: #CCC;
-  color: #555;
+  background: var(--color-bg-hover);
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .anchor-main {
   flex: 1;
-  padding: 24px 32px;
-  background: #F7F8FA;
+  padding: var(--space-6) var(--page-padding);
+  background: var(--color-bg-page);
   touch-action: manipulation;
 }
 
 .charts-container {
-  max-width: 1280px;
+  max-width: var(--max-width);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
+}
+
+.sub-charts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .chart-section {
@@ -199,31 +193,31 @@ onMounted(() => {
 
 .error-toast {
   position: fixed;
-  bottom: 24px;
+  bottom: var(--space-6);
   left: 50%;
   transform: translateX(-50%);
-  background: #1A1A1A;
+  background: var(--color-primary);
   color: white;
-  padding: 12px 20px;
-  border-radius: 8px;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
-  gap: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  gap: var(--space-3);
+  box-shadow: var(--shadow-elevated);
   z-index: 100;
   animation: slideUp 0.3s ease;
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .error-close {
   background: none;
   border: none;
   color: rgba(255,255,255,0.6);
-  font-size: 20px;
+  font-size: var(--text-xl);
   cursor: pointer;
   padding: 0;
-  width: 24px;
-  height: 24px;
+  width: var(--space-6);
+  height: var(--space-6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -241,16 +235,19 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .anchor-header {
-    padding: 12px 16px;
+    padding: var(--space-3) var(--page-padding-mobile);
   }
   .header-inner {
     flex-direction: column;
     align-items: flex-start;
   }
-  .header-title { font-size: 17px; }
+  .header-title { font-size: var(--text-xl); }
   .header-subtitle { display: none; }
-  .anchor-main { padding: 12px 16px; }
+  .anchor-main { padding: var(--space-3) var(--page-padding-mobile); }
   .charts-container { gap: 10px; }
+  .sub-charts {
+    gap: 10px;
+  }
   .main-chart-section { min-height: 280px; }
 }
 </style>

@@ -26,8 +26,9 @@ withDefaults(defineProps<Props>(), {
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -51,7 +52,7 @@ withDefaults(defineProps<Props>(), {
 .ring-dot {
   width: 6px;
   height: 6px;
-  background: #1A1A1A;
+  background: var(--color-primary);
   border-radius: 50%;
   animation: bounce 1.2s ease-in-out infinite;
 }
@@ -65,8 +66,8 @@ withDefaults(defineProps<Props>(), {
 }
 
 .loading-text {
-  color: #999;
-  font-size: 13px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-base);
   letter-spacing: 0.02em;
 }
 </style>

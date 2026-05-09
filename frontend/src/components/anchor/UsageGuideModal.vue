@@ -16,7 +16,7 @@
               title="关闭"
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M5 5L15 15M15 5L5 15" stroke="#666" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </button>
           </div>
@@ -135,38 +135,40 @@ onUnmounted(() => {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(13, 27, 42, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 .modal-container {
-  background: white;
-  border-radius: 12px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-xl);
   width: 100%;
   max-width: 640px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-modal);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-5) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--color-border-light);
   flex-shrink: 0;
 }
 
 .modal-title {
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -174,43 +176,45 @@ onUnmounted(() => {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 6px;
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
 .modal-close-btn:hover {
-  background: #f0f0f0;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
 }
 
 .modal-body {
-  padding: 20px 24px;
+  padding: var(--space-5) var(--space-6);
   overflow-y: auto;
   flex: 1;
   -webkit-overflow-scrolling: touch;
 }
 
 .disclaimer-box {
-  background: #fff8e6;
-  border: 1px solid #f5d89a;
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 13px;
-  color: #7a5c10;
-  line-height: 1.7;
-  margin-bottom: 20px;
+  background: var(--color-bg-warning);
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-5);
 }
 
 .disclaimer-box strong {
-  color: #c17b00;
+  color: #92400E;
 }
 
 .guide-section {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .guide-section:last-child {
@@ -218,13 +222,13 @@ onUnmounted(() => {
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 600;
-  color: #333;
-  margin: 0 0 12px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .section-number {
@@ -234,41 +238,11 @@ onUnmounted(() => {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #2962FF;
+  background: var(--color-primary-accent);
   color: white;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   flex-shrink: 0;
-}
-
-.section-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.section-list > li {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.75;
-  padding: 6px 0;
-  padding-left: 20px;
-  position: relative;
-}
-
-.section-list > li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 13px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #4472C4;
-}
-
-.section-list strong {
-  color: #333;
 }
 
 .rule-list {
@@ -279,13 +253,12 @@ onUnmounted(() => {
 }
 
 .rule-list > li {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.75;
-  padding: 8px 0 8px 28px;
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  padding: var(--space-2) 0 var(--space-2) 28px;
   position: relative;
-  border-left: 2px solid #e8e8e8;
-  padding-left: 28px;
+  border-left: 2px solid var(--color-border-default);
 }
 
 .rule-list > li::before {
@@ -293,13 +266,13 @@ onUnmounted(() => {
   content: counter(rule-counter);
   position: absolute;
   left: 0;
-  top: 8px;
+  top: var(--space-2);
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #2962FF;
+  background: var(--color-primary-accent);
   color: white;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -308,34 +281,34 @@ onUnmounted(() => {
 }
 
 .rule-list strong {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .section-text {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.75;
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
   margin: 0;
 }
 
 .modal-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #f0f0f0;
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border-light);
   display: flex;
   justify-content: center;
   flex-shrink: 0;
 }
 
 .modal-confirm-btn {
-  background: #2962FF;
+  background: var(--color-primary-accent);
   color: white;
   border: none;
   padding: 10px 40px;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-md);
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: background var(--transition-base), transform 0.1s;
 }
 
 .modal-confirm-btn:hover {
@@ -382,7 +355,7 @@ onUnmounted(() => {
 }
 
 /* 响应式 */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .modal-backdrop {
     padding: 0;
     align-items: flex-end;
@@ -391,23 +364,23 @@ onUnmounted(() => {
   .modal-container {
     max-width: 100%;
     max-height: 90vh;
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
   }
 
   .modal-header {
-    padding: 16px 16px 12px;
+    padding: var(--space-4) var(--space-4) var(--space-3);
   }
 
   .modal-title {
-    font-size: 16px;
+    font-size: var(--text-md);
   }
 
   .modal-body {
-    padding: 16px;
+    padding: var(--space-4);
   }
 
   .modal-footer {
-    padding: 12px 16px;
+    padding: var(--space-3) var(--space-4);
   }
 
   .modal-confirm-btn {

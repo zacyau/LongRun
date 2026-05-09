@@ -2,7 +2,7 @@
   <div class="chart-wrapper">
     <div class="chart-header">
       <h3 class="chart-title">国证A股指数五年之锚</h3>
-      <div v-if="deviationRate !== null" class="deviation-badge">
+      <div v-if="deviationRate !== null" class="badge badge-neutral">
         乖离率: {{ deviationRate > 0 ? '+' : '' }}{{ deviationRate }}%
       </div>
     </div>
@@ -12,6 +12,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { CHART_COLORS } from '@/utils/chartTheme'
 
 const isMobile = ref(false)
 const vChartRef = ref()
@@ -32,40 +33,25 @@ onUnmounted(() => {
 
 const xAxisInterval = computed(() => isMobile.value ? 1400 : 500)
 const dataZoomConfig = computed(() => {
+  const sliderBase = {
+    type: 'slider' as const,
+    start: 0,
+    end: 100,
+    height: 20,
+    bottom: 10,
+    handleSize: '80%',
+    showDetail: false,
+    borderColor: CHART_COLORS.zoomBorder,
+    backgroundColor: CHART_COLORS.zoomBg,
+    fillerColor: CHART_COLORS.zoomFill,
+    handleStyle: { color: CHART_COLORS.zoomHandle }
+  }
   if (isMobile.value) {
-    return [{
-      type: 'slider' as const,
-      start: 0,
-      end: 100,
-      height: 20,
-      bottom: 10,
-      handleSize: '80%',
-      showDetail: false,
-      borderColor: 'transparent',
-      backgroundColor: '#f5f5f5',
-      fillerColor: 'rgba(41, 98, 255, 0.1)',
-      handleStyle: { color: '#2962FF' }
-    }]
+    return [sliderBase]
   }
   return [
-    {
-      type: 'inside' as const,
-      start: 0,
-      end: 100
-    },
-    {
-      type: 'slider' as const,
-      start: 0,
-      end: 100,
-      height: 20,
-      bottom: 10,
-      handleSize: '80%',
-      showDetail: false,
-      borderColor: 'transparent',
-      backgroundColor: '#f5f5f5',
-      fillerColor: 'rgba(41, 98, 255, 0.1)',
-      handleStyle: { color: '#2962FF' }
-    }
+    { type: 'inside' as const, start: 0, end: 100 },
+    sliderBase
   ]
 })
 import { use } from 'echarts/core'
@@ -135,7 +121,7 @@ const chartOption = computed(() => {
       axisPointer: {
         type: 'cross',
         lineStyle: {
-          color: '#999',
+          color: CHART_COLORS.crosshair,
           type: 'dashed'
         }
       },
@@ -158,7 +144,7 @@ const chartOption = computed(() => {
         if (close !== null && close !== undefined && sma !== null && sma !== undefined && sma !== 0) {
           const deviation = ((close - sma) / sma * 100).toFixed(2)
           const sign = +deviation > 0 ? '+' : ''
-          html += `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;color:#333">
+          html += `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${CHART_COLORS.splitLine};color:${CHART_COLORS.tooltipText}">
             乖离率: ${sign}${deviation}%
           </div>`
         }
@@ -170,7 +156,7 @@ const chartOption = computed(() => {
       right: 20,
       top: 10,
       textStyle: {
-        color: '#666',
+        color: CHART_COLORS.axisLabel,
         fontSize: 12
       }
     },
@@ -185,10 +171,10 @@ const chartOption = computed(() => {
       data: dates,
       boundaryGap: false,
       axisLine: {
-        lineStyle: { color: '#ddd' }
+        lineStyle: { color: CHART_COLORS.axisLine }
       },
       axisLabel: {
-        color: '#666',
+        color: CHART_COLORS.axisLabel,
         fontSize: 11,
         interval: xAxisInterval.value,
         formatter: (value: string) => {
@@ -206,7 +192,7 @@ const chartOption = computed(() => {
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
-        color: '#666',
+        color: CHART_COLORS.axisLabel,
         fontSize: 11,
         formatter: (value: number) => {
           if (value >= 1000) return `${Math.round(value)}`
@@ -215,7 +201,7 @@ const chartOption = computed(() => {
       },
       splitLine: {
         lineStyle: {
-          color: '#f0f0f0'
+          color: CHART_COLORS.splitLine
         }
       }
     },
@@ -228,12 +214,12 @@ const chartOption = computed(() => {
         smooth: false,
         symbol: 'none',
         lineStyle: {
-          color: '#90CAF9',
+          color: CHART_COLORS.envelope,
           width: 1,
           type: 'dashed'
         },
         areaStyle: {
-          color: 'rgba(144, 202, 249, 0.15)',
+          color: CHART_COLORS.envelopeFill,
           origin: 'start'
         },
         z: 1
@@ -245,7 +231,7 @@ const chartOption = computed(() => {
         smooth: false,
         symbol: 'none',
         lineStyle: {
-          color: '#90CAF9',
+          color: CHART_COLORS.envelope,
           width: 1,
           type: 'dashed'
         },
@@ -262,7 +248,7 @@ const chartOption = computed(() => {
         smooth: false,
         symbol: 'none',
         lineStyle: {
-          color: '#2962FF',
+          color: CHART_COLORS.sma,
           width: 1.5
         },
         z: 3
@@ -274,7 +260,7 @@ const chartOption = computed(() => {
         smooth: false,
         symbol: 'none',
         lineStyle: {
-          color: '#333333',
+          color: CHART_COLORS.price,
           width: 1.5
         },
         z: 4
@@ -286,40 +272,36 @@ const chartOption = computed(() => {
 
 <style scoped>
 .chart-wrapper {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base);
+}
+
+.chart-wrapper:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .chart-title {
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
-}
-
-.deviation-badge {
-  background: #f0f0f0;
-  color: #666;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .chart {
   width: 100%;
   height: 400px;
-  touch-action: none;
-  will-change: transform;
+  touch-action: pan-y;
 }
 
 @media (max-width: 768px) {
@@ -330,7 +312,7 @@ const chartOption = computed(() => {
   .chart-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--space-2);
   }
 }
 </style>

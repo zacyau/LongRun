@@ -2,7 +2,7 @@
   <div class="chart-wrapper">
     <div class="chart-header">
       <h3 class="chart-title">国证A股 RSI14 (周)</h3>
-      <div v-if="currentRsi !== null" class="rsi-badge">
+      <div v-if="currentRsi !== null" class="badge badge-neutral">
         {{ currentRsi.toFixed(2) }}
       </div>
     </div>
@@ -12,6 +12,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { CHART_COLORS } from '@/utils/chartTheme'
 
 const isMobile = ref(false)
 const vChartRef = ref()
@@ -32,36 +33,25 @@ onUnmounted(() => {
 
 const xAxisInterval = computed(() => isMobile.value ? 1400 : 500)
 const dataZoomConfig = computed(() => {
+  const sliderBase = {
+    type: 'slider' as const,
+    start: 0,
+    end: 100,
+    height: 20,
+    bottom: 10,
+    handleSize: '80%',
+    showDetail: false,
+    borderColor: CHART_COLORS.zoomBorder,
+    backgroundColor: CHART_COLORS.zoomBg,
+    fillerColor: CHART_COLORS.zoomFill,
+    handleStyle: { color: CHART_COLORS.zoomHandle }
+  }
   if (isMobile.value) {
-    return [{
-      type: 'slider' as const,
-      start: 0,
-      end: 100,
-      height: 20,
-      bottom: 10,
-      handleSize: '80%',
-      showDetail: false,
-      borderColor: 'transparent',
-      backgroundColor: '#f5f5f5',
-      fillerColor: 'rgba(41, 98, 255, 0.1)',
-      handleStyle: { color: '#2962FF' }
-    }]
+    return [sliderBase]
   }
   return [
     { type: 'inside' as const, start: 0, end: 100 },
-    {
-      type: 'slider' as const,
-      start: 0,
-      end: 100,
-      height: 20,
-      bottom: 10,
-      handleSize: '80%',
-      showDetail: false,
-      borderColor: 'transparent',
-      backgroundColor: '#f5f5f5',
-      fillerColor: 'rgba(41, 98, 255, 0.1)',
-      handleStyle: { color: '#2962FF' }
-    }
+    sliderBase
   ]
 })
 import { use } from 'echarts/core'
@@ -107,7 +97,7 @@ const chartOption = computed(() => {
       axisPointer: {
         type: 'cross',
         lineStyle: {
-          color: '#999',
+          color: CHART_COLORS.crosshair,
           type: 'dashed'
         }
       },
@@ -129,10 +119,10 @@ const chartOption = computed(() => {
       data: dates,
       boundaryGap: false,
       axisLine: {
-        lineStyle: { color: '#ddd' }
+        lineStyle: { color: CHART_COLORS.axisLine }
       },
       axisLabel: {
-        color: '#666',
+        color: CHART_COLORS.axisLabel,
         fontSize: 11,
         interval: xAxisInterval.value,
         formatter: (value: string) => {
@@ -151,12 +141,12 @@ const chartOption = computed(() => {
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
-        color: '#666',
+        color: CHART_COLORS.axisLabel,
         fontSize: 11
       },
       splitLine: {
         lineStyle: {
-          color: '#f0f0f0'
+          color: CHART_COLORS.splitLine
         }
       }
     },
@@ -170,7 +160,7 @@ const chartOption = computed(() => {
         smooth: false,
         symbol: 'none',
         lineStyle: {
-          color: '#1A1A1A',
+          color: CHART_COLORS.price,
           width: 1.5
         },
         markLine: {
@@ -178,20 +168,20 @@ const chartOption = computed(() => {
           label: {
             show: true,
             position: 'end',
-            color: '#999',
+            color: CHART_COLORS.axisLabel,
             fontSize: 11
           },
           lineStyle: {
-            color: '#ccc',
+            color: CHART_COLORS.markNeutral,
             type: 'dashed',
             width: 1
           },
           data: [
-            { yAxis: 80, label: { formatter: '80', color: '#EF9A9A' }, lineStyle: { color: '#EF9A9A' } },
+            { yAxis: 80, label: { formatter: '80', color: CHART_COLORS.markDanger }, lineStyle: { color: CHART_COLORS.markDanger } },
             { yAxis: 60, label: { formatter: '60' } },
             { yAxis: 50, label: { formatter: '50' } },
             { yAxis: 40, label: { formatter: '40' } },
-            { yAxis: 20, label: { formatter: '20', color: '#A5D6A7' }, lineStyle: { color: '#A5D6A7' } }
+            { yAxis: 20, label: { formatter: '20', color: CHART_COLORS.markSafe }, lineStyle: { color: CHART_COLORS.markSafe } }
           ]
         }
       }
@@ -202,40 +192,36 @@ const chartOption = computed(() => {
 
 <style scoped>
 .chart-wrapper {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base);
+}
+
+.chart-wrapper:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .chart-title {
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
-}
-
-.rsi-badge {
-  background: #f0f0f0;
-  color: #666;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .chart {
   width: 100%;
   height: 280px;
-  touch-action: none;
-  will-change: transform;
+  touch-action: pan-y;
 }
 
 @media (max-width: 768px) {

@@ -3,19 +3,12 @@
     <header class="hongli-header">
       <div class="header-inner">
         <div class="header-brand">
-          <div class="brand-tag">量化分析</div>
           <div class="brand-info">
             <h1 class="header-title">中证红利 <span class="title-sep">/</span> 国证A股</h1>
             <p class="header-subtitle">轮动三棱镜 · 中证红利相对国证A股的超额收益分析</p>
           </div>
         </div>
         <div class="header-actions">
-          <div class="data-meta" v-if="store.data">
-            <span class="meta-item">
-              <span class="meta-dot"></span>
-              共 {{ store.data.chart1.dates.length }} 个交易日
-            </span>
-          </div>
           <TimeRangeSelector
             v-model="store.selectedRange"
             v-model:customStart="store.customStartDate"
@@ -47,7 +40,7 @@
               </span>
             </div>
           </div>
-          <div ref="chart1Ref" class="chart-box"></div>
+          <v-chart ref="vChart1Ref" class="chart-box" :option="chart1Option" :update-options="{ notMerge: false, replaceMerge: ['series'] }" />
         </div>
 
         <div class="chart-card">
@@ -58,15 +51,15 @@
             </div>
             <div class="card-actions">
               <div class="card-badges" v-if="store.data">
-                <span class="badge badge-ratio">比值 {{ store.data.chart2.ratio[store.data.chart2.ratio.length - 1]?.toFixed(4) }}</span>
-                <span class="badge badge-pctb">%B {{ store.data.chart2.pctB }}</span>
+                <span class="badge badge-neutral">比值 {{ store.data.chart2.ratio[store.data.chart2.ratio.length - 1]?.toFixed(4) }}</span>
+                <span class="badge badge-blue">%B {{ store.data.chart2.pctB }}</span>
               </div>
               <button class="info-btn" @click="showModal2 = true">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
               </button>
             </div>
           </div>
-          <div ref="chart2Ref" class="chart-box"></div>
+          <v-chart ref="vChart2Ref" class="chart-box" :option="chart2Option" :update-options="{ notMerge: false, replaceMerge: ['series'] }" />
         </div>
 
         <div class="chart-card">
@@ -77,14 +70,14 @@
             </div>
             <div class="card-actions">
               <div class="card-badges" v-if="store.data">
-                <span class="badge badge-diff">差值 {{ store.data.chart3.diff[store.data.chart3.diff.length - 1]?.toFixed(2) }}%</span>
+                <span class="badge badge-neutral">差值 {{ store.data.chart3.diff[store.data.chart3.diff.length - 1]?.toFixed(2) }}%</span>
               </div>
               <button class="info-btn" @click="showModal3 = true">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
               </button>
             </div>
           </div>
-          <div ref="chart3Ref" class="chart-box"></div>
+          <v-chart ref="vChart3Ref" class="chart-box" :option="chart3Option" :update-options="{ notMerge: false, replaceMerge: ['series'] }" />
         </div>
 
         <div class="chart-card">
@@ -95,14 +88,14 @@
             </div>
             <div class="card-actions">
               <div class="card-badges" v-if="store.data">
-                <span class="badge badge-rsi">RSI {{ store.data.chart4.latest_rsi }}</span>
+                <span class="badge badge-neutral">RSI {{ store.data.chart4.latest_rsi }}</span>
               </div>
               <button class="info-btn" @click="showModal4 = true">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
               </button>
             </div>
           </div>
-          <div ref="chart4Ref" class="chart-box"></div>
+          <v-chart ref="vChart4Ref" class="chart-box" :option="chart4Option" :update-options="{ notMerge: false, replaceMerge: ['series'] }" />
         </div>
       </div>
 
@@ -119,149 +112,200 @@
     </main>
 
     <!-- Modals -->
-    <div v-if="showModal2" class="modal-overlay" @click.self="showModal2 = false">
-      <div class="modal-panel">
-        <div class="modal-header">
-          <h3>布林线说明</h3>
-          <button class="modal-close" @click="showModal2 = false">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="modal-section">
-            <h4>计算</h4>
-            <ul class="modal-list">
-              <li>比值 = 中证红利全收益 / 国证A股全收益</li>
-              <li>中轨 = 比值的242日简单移动平均（MA242）</li>
-              <li>上轨 = 中轨 + 2×标准差</li>
-              <li>下轨 = 中轨 - 2×标准差</li>
-              <li>%B = (当前比值 - 下轨) / (上轨 - 下轨)</li>
-              <li>带宽 = (上轨 - 下轨) / 中轨 × 100%</li>
-            </ul>
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showModal2" class="modal-overlay" @click.self="showModal2 = false">
+          <div class="modal-panel">
+            <div class="modal-header">
+              <h3>布林线说明</h3>
+              <button class="modal-close" @click="showModal2 = false">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="modal-section">
+                <h4>计算</h4>
+                <ul class="modal-list">
+                  <li>比值 = 中证红利全收益 / 国证A股全收益</li>
+                  <li>中轨 = 比值的242日简单移动平均（MA242）</li>
+                  <li>上轨 = 中轨 + 2×标准差</li>
+                  <li>下轨 = 中轨 - 2×标准差</li>
+                  <li>%B = (当前比值 - 下轨) / (上轨 - 下轨)</li>
+                  <li>带宽 = (上轨 - 下轨) / 中轨 × 100%</li>
+                </ul>
+              </div>
+              <div class="modal-section">
+                <h4>作用</h4>
+                <p>判断红利/国证比值处于历史波动区间的什么位置。%B靠近0说明比值接近下轨（红利相对偏弱），靠近1说明比值接近上轨（红利相对偏强）。带宽变宽说明波动加大。</p>
+              </div>
+            </div>
           </div>
-          <div class="modal-section">
-            <h4>作用</h4>
-            <p>判断红利/国证比值处于历史波动区间的什么位置。%B靠近0说明比值接近下轨（红利相对偏弱），靠近1说明比值接近上轨（红利相对偏强）。带宽变宽说明波动加大。</p>
-          </div>
         </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
 
-    <div v-if="showModal3" class="modal-overlay" @click.self="showModal3 = false">
-      <div class="modal-panel">
-        <div class="modal-header">
-          <h3>收益差说明</h3>
-          <button class="modal-close" @click="showModal3 = false">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="modal-section">
-            <h4>计算</h4>
-            <ul class="modal-list">
-              <li>40日收益差 = 中证红利40日累计收益率 - 国证A股40日累计收益率</li>
-              <li>再叠加一条242日均线（MA242）</li>
-            </ul>
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showModal3" class="modal-overlay" @click.self="showModal3 = false">
+          <div class="modal-panel">
+            <div class="modal-header">
+              <h3>收益差说明</h3>
+              <button class="modal-close" @click="showModal3 = false">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="modal-section">
+                <h4>计算</h4>
+                <ul class="modal-list">
+                  <li>40日收益差 = 中证红利40日累计收益率 - 国证A股40日累计收益率</li>
+                  <li>再叠加一条242日均线（MA242）</li>
+                </ul>
+              </div>
+              <div class="modal-section">
+                <h4>作用</h4>
+                <p>衡量短期（40日）内红利指数相对国证A股的超额收益方向和幅度。差值为正说明红利短期跑赢，反之跑输。均线方向反映中期趋势。</p>
+                <p class="modal-tip">过高的时候不要追高，可以静待回落到零轴甚至此前常见的低点时杀入。</p>
+              </div>
+            </div>
           </div>
-          <div class="modal-section">
-            <h4>作用</h4>
-            <p>衡量短期（40日）内红利指数相对国证A股的超额收益方向和幅度。差值为正说明红利短期跑赢，反之跑输。均线方向反映中期趋势。</p>
-            <p class="modal-tip">过高的时候不要追高，可以静待回落到零轴甚至此前常见的低点时杀入。</p>
-          </div>
         </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
 
-    <div v-if="showModal4" class="modal-overlay" @click.self="showModal4 = false">
-      <div class="modal-panel">
-        <div class="modal-header">
-          <h3>RSI 说明</h3>
-          <button class="modal-close" @click="showModal4 = false">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="modal-section">
-            <h4>计算</h4>
-            <ul class="modal-list">
-              <li>先算出比值（中证红利/国证A股）</li>
-              <li>RSI(14) = 100 - 100/(1+RS)</li>
-              <li>RS = 14日内上涨幅度均值 / 14日内下跌幅度均值（绝对值）</li>
-              <li>同样叠加242日均线</li>
-            </ul>
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showModal4" class="modal-overlay" @click.self="showModal4 = false">
+          <div class="modal-panel">
+            <div class="modal-header">
+              <h3>RSI 说明</h3>
+              <button class="modal-close" @click="showModal4 = false">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="modal-section">
+                <h4>计算</h4>
+                <ul class="modal-list">
+                  <li>先算出比值（中证红利/国证A股）</li>
+                  <li>RSI(14) = 100 - 100/(1+RS)</li>
+                  <li>RS = 14日内上涨幅度均值 / 14日内下跌幅度均值（绝对值）</li>
+                  <li>同样叠加242日均线</li>
+                </ul>
+              </div>
+              <div class="modal-section">
+                <h4>作用</h4>
+                <p>RSI反映比值的动能强弱。RSI&gt;70说明比值处于强势上涨区间（红利相对强势），RSI&lt;30说明比值弱势（红利相对跑输）。和图2结合可以看价格位置+动能方向。</p>
+              </div>
+            </div>
           </div>
-          <div class="modal-section">
-            <h4>作用</h4>
-            <p>RSI反映比值的动能强弱。RSI&gt;70说明比值处于强势上涨区间（红利相对强势），RSI&lt;30说明比值弱势（红利相对跑输）。和图2结合可以看价格位置+动能方向。</p>
-          </div>
         </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart, CustomChart } from 'echarts/charts'
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkLineComponent
+} from 'echarts/components'
+import VChart from 'vue-echarts'
 import { useHongliStore } from '@/stores/hongliStore'
+import { CHART_COLORS } from '@/utils/chartTheme'
 import type { TimeRangeOption } from '@/types/anchor'
 import TimeRangeSelector from '@/components/anchor/TimeRangeSelector.vue'
 
+use([
+  CanvasRenderer,
+  LineChart,
+  CustomChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkLineComponent,
+])
+
 const store = useHongliStore()
-const chart1Ref = ref<HTMLDivElement | null>(null)
-const chart2Ref = ref<HTMLDivElement | null>(null)
-const chart3Ref = ref<HTMLDivElement | null>(null)
-const chart4Ref = ref<HTMLDivElement | null>(null)
 const showModal2 = ref(false)
 const showModal3 = ref(false)
 const showModal4 = ref(false)
+
+const isMobile = ref(false)
+const vChart1Ref = ref()
+const vChart2Ref = ref()
+const vChart3Ref = ref()
+const vChart4Ref = ref()
+
+function handleResize() {
+  isMobile.value = window.innerWidth <= 768
+  vChart1Ref.value?.chart?.resize()
+  vChart2Ref.value?.chart?.resize()
+  vChart3Ref.value?.chart?.resize()
+  vChart4Ref.value?.chart?.resize()
+}
+
+onMounted(() => {
+  handleResize()
+  window.addEventListener('resize', handleResize, { passive: true })
+  store.fetchData()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 function handleRangeChange(range: TimeRangeOption) {
   store.fetchData(range)
 }
 
 const COLORS = {
-  hongli: '#E53935',
-  guozheng: '#2962FF',
-  ratio: '#333333',
-  ma242: '#E53935',
-  bollingerUpper: 'rgba(144, 168, 204, 0.5)',
-  bollingerLower: 'rgba(144, 168, 204, 0.5)',
-  diff: '#333333',
-  diffMa: '#E53935',
-  rsi: '#333333',
-  rsiMa: '#E53935',
-  grid: '#F5F5F5',
+  hongli: CHART_COLORS.hongli,
+  guozheng: CHART_COLORS.guozheng,
+  ratio: CHART_COLORS.ratio,
+  ma242: CHART_COLORS.hongli,
+  bollinger: CHART_COLORS.bollinger,
+  bollingerFill: CHART_COLORS.bollingerFill,
+  diff: CHART_COLORS.diff,
+  diffMa: CHART_COLORS.hongli,
+  rsi: CHART_COLORS.ratio,
+  rsiMa: CHART_COLORS.hongli,
+  grid: CHART_COLORS.splitLine,
 }
 
-const chart1 = ref<echarts.ECharts | null>(null)
-const chart2 = ref<echarts.ECharts | null>(null)
-const chart3 = ref<echarts.ECharts | null>(null)
-const chart4 = ref<echarts.ECharts | null>(null)
-
-function initCharts() {
-  if (chart1Ref.value && !chart1.value) chart1.value = echarts.init(chart1Ref.value)
-  if (chart2Ref.value && !chart2.value) chart2.value = echarts.init(chart2Ref.value)
-  if (chart3Ref.value && !chart3.value) chart3.value = echarts.init(chart3Ref.value)
-  if (chart4Ref.value && !chart4.value) chart4.value = echarts.init(chart4Ref.value)
+const tooltipBase = {
+  trigger: 'axis' as const,
+  confine: true,
+  backgroundColor: CHART_COLORS.tooltipBg,
+  borderColor: CHART_COLORS.tooltipBorder,
+  borderWidth: 1,
+  padding: [8, 12] as [number, number],
+  textStyle: { color: CHART_COLORS.tooltipText, fontSize: 12 },
+  axisPointer: { type: 'cross' as const, lineStyle: { color: CHART_COLORS.crosshair, type: 'dashed' as const } },
 }
 
-function resizeCharts() {
-  chart1.value?.resize()
-  chart2.value?.resize()
-  chart3.value?.resize()
-  chart4.value?.resize()
-}
+const gridBase = { left: 52, right: 20, top: 24, bottom: 24 }
 
-function buildChart1Option(d: any, isMobile: boolean) {
+const chart1Option = computed(() => {
+  if (!store.data) return {}
+  const d = store.data.chart1
   return {
-    tooltip: { trigger: 'axis', confine: true, backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#E8E8E8', borderWidth: 1, padding: [8, 12], textStyle: { color: '#333', fontSize: 12 }, axisPointer: { type: 'cross', lineStyle: { color: '#DDD', type: 'dashed' } } },
+    animation: false,
+    tooltip: tooltipBase,
     legend: { show: false },
-    grid: { left: 52, right: 20, top: 24, bottom: 24 },
-    xAxis: { type: 'category', data: d.dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, interval: isMobile ? 1400 : 400 }, splitLine: { show: false } },
-    yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, formatter: (v: number) => v.toFixed(0) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
+    grid: gridBase,
+    xAxis: { type: 'category', data: d.dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: CHART_COLORS.axisLabel, fontSize: 10, interval: isMobile.value ? 1400 : 400 }, splitLine: { show: false } },
+    yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: CHART_COLORS.axisLabel, fontSize: 10, formatter: (v: number) => v.toFixed(0) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
     series: [
       { name: '中证红利', type: 'line', data: d.hongli, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.hongli } },
       { name: '国证A股', type: 'line', data: d.guozheng, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.guozheng } },
     ],
   }
-}
+})
 
-function buildChart2Option(d: any, isMobile: boolean) {
+const chart2Option = computed(() => {
+  if (!store.data) return {}
+  const d = store.data.chart2
   const dates = d.dates as string[]
   const upper = d.upper as (number | null)[]
   const lower = d.lower as (number | null)[]
@@ -270,13 +314,14 @@ function buildChart2Option(d: any, isMobile: boolean) {
   const lowerValid: number[] = lower.map((v, i) => v ?? (upper[i] ?? 0))
 
   return {
-    tooltip: { trigger: 'axis', confine: true, backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#E8E8E8', borderWidth: 1, padding: [8, 12], textStyle: { color: '#333', fontSize: 12 }, axisPointer: { type: 'cross', lineStyle: { color: '#DDD', type: 'dashed' } } },
+    animation: false,
+    tooltip: tooltipBase,
     legend: { show: false },
-    grid: { left: 52, right: 20, top: 24, bottom: 24 },
-    xAxis: { type: 'category', data: dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, interval: isMobile ? 1400 : 400 }, splitLine: { show: false } },
-    yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, formatter: (v: number) => v.toFixed(2) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
+    grid: gridBase,
+    xAxis: { type: 'category', data: dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: CHART_COLORS.axisLabel, fontSize: 10, interval: isMobile.value ? 1400 : 400 }, splitLine: { show: false } },
+    yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: CHART_COLORS.axisLabel, fontSize: 10, formatter: (v: number) => v.toFixed(2) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
     series: [
-      { name: '上轨', type: 'line', data: d.upper, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dotted', color: COLORS.bollingerUpper }, z: 3 },
+      { name: '上轨', type: 'line', data: d.upper, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dotted', color: COLORS.bollinger }, z: 3 },
       {
         name: '布林带填充',
         type: 'custom',
@@ -293,189 +338,113 @@ function buildChart2Option(d: any, isMobile: boolean) {
             const yDown = api.coord([i, lowerValid[i]])[1]
             pts[N + (N - 1 - i)] = [x, yDown]
           }
-          return { type: 'polygon', shape: { points: pts }, style: { fill: 'rgba(224, 224, 224, 0.6)', stroke: 'none' }, z: 0 }
+          return { type: 'polygon', shape: { points: pts }, style: { fill: COLORS.bollingerFill, stroke: 'none' }, z: 0 }
         },
         data: [0],
         z: 0,
         silent: true,
       },
-      { name: '下轨', type: 'line', data: d.lower, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dotted', color: COLORS.bollingerLower }, z: 2 },
+      { name: '下轨', type: 'line', data: d.lower, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dotted', color: COLORS.bollinger }, z: 2 },
       { name: 'MA242', type: 'line', data: d.ma242, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dashed', color: COLORS.ma242 } },
       { name: '比值', type: 'line', data: d.ratio, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.ratio } },
     ],
   }
-}
+})
 
-function buildChart3Option(d: any, isMobile: boolean) {
+const chart3Option = computed(() => {
+  if (!store.data) return {}
+  const d = store.data.chart3
   return {
-    tooltip: { trigger: 'axis', confine: true, backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#E8E8E8', borderWidth: 1, padding: [8, 12], textStyle: { color: '#333', fontSize: 12 }, axisPointer: { type: 'cross', lineStyle: { color: '#DDD', type: 'dashed' } } },
+    animation: false,
+    tooltip: tooltipBase,
     legend: { show: false },
-    grid: { left: 52, right: 20, top: 24, bottom: 24 },
-    xAxis: { type: 'category', data: d.dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, interval: isMobile ? 1400 : 400 }, splitLine: { show: false } },
-    yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, formatter: (v: number) => `${v.toFixed(1)}%` }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
+    grid: gridBase,
+    xAxis: { type: 'category', data: d.dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: CHART_COLORS.axisLabel, fontSize: 10, interval: isMobile.value ? 1400 : 400 }, splitLine: { show: false } },
+    yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: CHART_COLORS.axisLabel, fontSize: 10, formatter: (v: number) => `${v.toFixed(1)}%` }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
     series: [
       { name: '收益差', type: 'line', data: d.diff, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.diff } },
       { name: 'MA242', type: 'line', data: d.diff_ma242, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dashed', color: COLORS.diffMa } },
     ],
   }
-}
+})
 
-function buildChart4Option(d: any, isMobile: boolean) {
+const chart4Option = computed(() => {
+  if (!store.data) return {}
+  const d = store.data.chart4
   return {
-    tooltip: { trigger: 'axis', confine: true, backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#E8E8E8', borderWidth: 1, padding: [8, 12], textStyle: { color: '#333', fontSize: 12 }, axisPointer: { type: 'cross', lineStyle: { color: '#DDD', type: 'dashed' } } },
+    animation: false,
+    tooltip: tooltipBase,
     legend: { show: false },
-    grid: { left: 52, right: 20, top: 24, bottom: 24 },
-    xAxis: { type: 'category', data: d.dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, interval: isMobile ? 1400 : 400 }, splitLine: { show: false } },
-    yAxis: { type: 'value', min: 0, max: 100, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#AAAAAA', fontSize: 10, formatter: (v: number) => v.toFixed(0) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
+    grid: gridBase,
+    xAxis: { type: 'category', data: d.dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: CHART_COLORS.axisLabel, fontSize: 10, interval: isMobile.value ? 1400 : 400 }, splitLine: { show: false } },
+    yAxis: { type: 'value', min: 0, max: 100, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: CHART_COLORS.axisLabel, fontSize: 10, formatter: (v: number) => v.toFixed(0) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
     series: [
       { name: 'RSI14', type: 'line', data: d.rsi, smooth: false, symbol: 'none', lineStyle: { width: 1.5, color: COLORS.rsi } },
       { name: 'MA242', type: 'line', data: d.rsi_ma242, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dashed', color: COLORS.rsiMa } },
     ],
   }
-}
-
-function renderAllCharts() {
-  if (!store.data) return
-  const isMobile = window.innerWidth <= 768
-  const d1 = store.data.chart1
-  const d2 = store.data.chart2
-  const d3 = store.data.chart3
-  const d4 = store.data.chart4
-  chart1.value?.setOption(buildChart1Option(d1, isMobile), { notMerge: false })
-  chart2.value?.setOption(buildChart2Option(d2, isMobile), { notMerge: false })
-  chart3.value?.setOption(buildChart3Option(d3, isMobile), { notMerge: false })
-  chart4.value?.setOption(buildChart4Option(d4, isMobile), { notMerge: false })
-}
-
-let resizeTimer: ReturnType<typeof setTimeout> | null = null
-function onResize() {
-  if (resizeTimer) clearTimeout(resizeTimer)
-  resizeTimer = setTimeout(() => {
-    resizeCharts()
-    renderAllCharts()
-  }, 100)
-}
-
-onMounted(() => {
-  window.addEventListener('resize', onResize, { passive: true })
-  store.fetchData()
-})
-
-onUnmounted(() => {
-  chart1.value?.dispose()
-  chart2.value?.dispose()
-  chart3.value?.dispose()
-  chart4.value?.dispose()
-  chart1.value = null
-  chart2.value = null
-  chart3.value = null
-  chart4.value = null
-  window.removeEventListener('resize', onResize)
-})
-
-watch(() => store.data, () => {
-  nextTick(() => {
-    nextTick(() => {
-      initCharts()
-      renderAllCharts()
-    })
-  })
 })
 </script>
 
 <style scoped>
 .hongli-view {
-  min-height: calc(100vh - 56px);
-  background: #F7F8FA;
+  min-height: calc(100vh - var(--header-height));
+  background: var(--color-bg-page);
   touch-action: manipulation;
 }
 
 .hongli-header {
-  background: #fff;
-  border-bottom: 1px solid #EBEBEB;
-  padding: 20px 32px;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-default);
+  padding: var(--space-5) var(--page-padding);
   touch-action: manipulation;
 }
 
 .header-inner {
-  max-width: 1280px;
+  max-width: var(--max-width);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .header-brand {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-}
-
-.brand-tag {
-  background: #1A1A1A;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 3px;
-  letter-spacing: 0.05em;
-  margin-top: 4px;
-  white-space: nowrap;
 }
 
 .header-title {
-  font-size: 20px;
+  font-size: var(--text-2xl);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-primary);
   margin: 0 0 4px;
   letter-spacing: -0.01em;
 }
 
 .title-sep {
-  color: #CCC;
+  color: var(--color-border-default);
   font-weight: 400;
   margin: 0 2px;
 }
 
 .header-subtitle {
-  font-size: 13px;
-  color: #999;
+  font-size: var(--text-base);
+  color: var(--color-text-tertiary);
   margin: 0;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 
-.data-meta {
-  display: flex;
-  align-items: center;
-}
-
-.meta-item {
-  font-size: 12px;
-  color: #999;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.meta-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #52C41A;
-  display: inline-block;
-}
-
 .hongli-main {
-  max-width: 1280px;
+  max-width: var(--max-width);
   margin: 0 auto;
-  padding: 24px 32px;
+  padding: var(--space-6) var(--page-padding);
   touch-action: manipulation;
 }
 
@@ -483,20 +452,20 @@ watch(() => store.data, () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #FFF2F0;
-  border: 1px solid #FFCCC7;
-  color: #CF1322;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 14px;
+  background: var(--color-bg-danger);
+  border: 1px solid #FECACA;
+  color: var(--color-danger);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-md);
 }
 
 .error-banner button {
   background: none;
   border: none;
-  color: #CF1322;
-  font-size: 18px;
+  color: var(--color-danger);
+  font-size: var(--text-xl);
   cursor: pointer;
   padding: 0;
   line-height: 1;
@@ -505,26 +474,26 @@ watch(() => store.data, () => {
 .charts-grid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .chart-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 20px 24px 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.03);
-  transition: box-shadow 0.2s;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6) var(--space-4);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base);
 }
 
 .chart-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .card-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-3);
 }
 
 .card-title-group {
@@ -534,15 +503,16 @@ watch(() => store.data, () => {
 }
 
 .card-title {
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--color-text-primary);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .card-desc {
-  font-size: 12px;
-  color: #AAA;
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
 }
 
 .card-legend {
@@ -554,8 +524,8 @@ watch(() => store.data, () => {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
-  color: #666;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .legend-dot {
@@ -571,7 +541,7 @@ watch(() => store.data, () => {
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .card-badges {
@@ -579,61 +549,46 @@ watch(() => store.data, () => {
   gap: 6px;
 }
 
-.badge {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: #F5F5F5;
-  color: #666;
-}
-
-.badge-ratio { color: #333; font-weight: 600; }
-.badge-pctb { color: #2962FF; }
-.badge-rsi { color: #333; font-weight: 600; }
-.badge-diff { color: #333; font-weight: 600; }
-
 .info-btn {
   background: none;
-  border: 1px solid #E8E8E8;
-  padding: 4px 8px;
-  border-radius: 5px;
+  border: 1px solid var(--color-border-default);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  color: #AAA;
+  color: var(--color-text-tertiary);
   display: flex;
   align-items: center;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .info-btn:hover {
-  color: #666;
-  border-color: #CCC;
-  background: #FAFAFA;
+  color: var(--color-text-secondary);
+  border-color: var(--color-text-tertiary);
+  background: var(--color-bg-hover);
 }
 
 .chart-box {
   width: 100%;
   height: 280px;
-  touch-action: none;
-  will-change: transform;
+  touch-action: pan-y;
 }
 
 .empty-state {
   text-align: center;
   padding: 60px;
-  color: #999;
-  font-size: 14px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-md);
 }
 
 .loading-state {
   text-align: center;
   padding: 60px;
-  color: #999;
-  font-size: 14px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-md);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .loading-dot {
@@ -641,7 +596,7 @@ watch(() => store.data, () => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #2962FF;
+  background: var(--color-primary-accent);
   animation: dotBounce 1.2s infinite ease-in-out;
 }
 
@@ -657,37 +612,38 @@ watch(() => store.data, () => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(13, 27, 42, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
-  backdrop-filter: blur(2px);
+  padding: var(--space-5);
 }
 
 .modal-panel {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-xl);
   max-width: 480px;
   width: 100%;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-modal);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
-  border-bottom: 1px solid #F0F0F0;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--color-text-primary);
 }
 
 .modal-close {
@@ -695,15 +651,23 @@ watch(() => store.data, () => {
   border: none;
   font-size: 22px;
   cursor: pointer;
-  color: #AAA;
+  color: var(--color-text-tertiary);
   line-height: 1;
-  padding: 0;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
 }
 
-.modal-close:hover { color: #333; }
+.modal-close:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
+}
 
 .modal-body {
-  padding: 20px 24px 24px;
+  padding: var(--space-5) var(--space-6) var(--space-6);
 }
 
 .modal-section {
@@ -713,9 +677,9 @@ watch(() => store.data, () => {
 .modal-section:last-child { margin-bottom: 0; }
 
 .modal-section h4 {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--color-text-primary);
   margin: 0 0 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -728,61 +692,46 @@ watch(() => store.data, () => {
 }
 
 .modal-list li {
-  font-size: 13px;
-  color: #555;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
   padding: 3px 0;
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 .modal-tip {
-  margin-top: 8px;
-  color: #888;
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.formula-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.formula-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #555;
-  background: #F8F9FA;
-  padding: 6px 10px;
-  border-radius: 5px;
-}
-
-.f-label {
-  font-weight: 600;
-  color: #333;
-  min-width: 40px;
-}
-
-.f-eq {
-  color: #AAA;
-  font-size: 12px;
+  margin-top: var(--space-2);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
 }
 
 .modal-section p {
-  font-size: 13px;
-  color: #555;
-  line-height: 1.7;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
   margin: 0;
 }
 
+/* Modal transition */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
 @media (max-width: 768px) {
-  .hongli-header { padding: 14px 16px; }
+  .hongli-header { padding: var(--space-3) var(--page-padding-mobile); }
   .header-inner { flex-direction: column; align-items: flex-start; }
-  .header-title { font-size: 17px; }
-  .hongli-main { padding: 12px 16px; }
+  .header-title { font-size: var(--text-xl); }
+  .hongli-main { padding: var(--space-3) var(--page-padding-mobile); }
+  .charts-grid {
+    gap: 10px;
+  }
+  .chart-card { padding: var(--space-3) var(--space-4) var(--space-3); }
   .chart-box { height: 220px; }
-  .charts-grid { gap: 10px; }
-  .chart-card { padding: 14px 16px 12px; }
 }
 </style>

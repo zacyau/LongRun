@@ -42,7 +42,7 @@
               <span class="pwd-title">请输入管理员密码</span>
               <button class="pwd-close" @click="cancelPassword">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M4 4L12 12M12 4L4 12" stroke="#666" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
               </button>
             </div>
@@ -168,68 +168,69 @@ onUnmounted(() => {
 .time-range-selector {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .range-buttons {
   display: flex;
-  gap: 4px;
-  background: #f0f0f0;
-  padding: 4px;
-  border-radius: 6px;
+  gap: var(--space-1);
+  background: var(--color-bg-hover);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
 }
 
 .range-btn {
   padding: 6px 12px;
   border: none;
   background: transparent;
-  color: #666;
-  font-size: 13px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-base);
   cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-base);
 }
 
 .range-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(13, 27, 42, 0.05);
 }
 
 .range-btn.active {
-  background: white;
-  color: #333;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
   font-weight: 500;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(13, 27, 42, 0.1);
 }
 
 .custom-range {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .date-input {
   padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 13px;
-  color: #333;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
 }
 
 .range-separator {
-  color: #999;
-  font-size: 13px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-base);
 }
 
 .apply-btn {
   padding: 6px 12px;
-  background: #2962FF;
+  background: var(--color-primary-accent);
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-base);
 }
 
 .apply-btn:hover {
@@ -239,21 +240,22 @@ onUnmounted(() => {
 .refresh-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   padding: 6px 12px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 13px;
-  color: #666;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  color: var(--color-text-tertiary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   margin-left: auto;
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #ccc;
+  background: var(--color-bg-hover);
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .refresh-btn:disabled {
@@ -263,7 +265,7 @@ onUnmounted(() => {
 
 .refresh-icon {
   display: inline-block;
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .refresh-icon.spinning {
@@ -279,20 +281,22 @@ onUnmounted(() => {
 .pwd-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(13, 27, 42, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 .pwd-modal {
-  background: white;
-  border-radius: 10px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-xl);
   width: 100%;
   max-width: 360px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-modal);
   overflow: hidden;
 }
 
@@ -300,88 +304,93 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .pwd-title {
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .pwd-close {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
   display: flex;
   align-items: center;
-  transition: background 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .pwd-close:hover {
-  background: #f0f0f0;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
 }
 
 .pwd-body {
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 .pwd-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #333;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  color: var(--color-text-primary);
   box-sizing: border-box;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  background: var(--color-bg-input);
 }
 
 .pwd-input:focus {
-  border-color: #2962FF;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(41, 98, 255, 0.1);
+  background: var(--color-bg-input-focus);
 }
 
 .pwd-error {
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: #e54d42;
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
 }
 
 .pwd-footer {
   display: flex;
   gap: 10px;
-  padding: 12px 20px 16px;
+  padding: var(--space-3) var(--space-5) var(--space-4);
   justify-content: flex-end;
 }
 
 .pwd-cancel-btn {
   padding: 8px 20px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: white;
-  color: #666;
-  font-size: 13px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  font-size: var(--text-base);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-fast);
 }
 
 .pwd-cancel-btn:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-hover);
 }
 
 .pwd-confirm-btn {
   padding: 8px 20px;
   border: none;
-  border-radius: 6px;
-  background: #2962FF;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-accent);
   color: white;
-  font-size: 13px;
+  font-size: var(--text-base);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-base);
 }
 
 .pwd-confirm-btn:hover {

@@ -24,13 +24,12 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #1A1A1A;
-  background: #F7F8FA;
-  line-height: 1.5;
+  color: var(--color-text-primary);
+  background: var(--color-bg-page);
+  line-height: var(--leading-normal);
   overscroll-behavior: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -39,7 +38,6 @@ body {
 #app {
   min-height: 100vh;
   min-height: 100dvh;
-  overscroll-behavior: none;
 }
 
 .app-root {
@@ -47,18 +45,16 @@ body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  overscroll-behavior: none;
 }
 
 .app-main {
   flex: 1;
-  padding-top: 56px;
-  overscroll-behavior: none;
+  padding-top: var(--header-height);
   touch-action: manipulation;
 }
 
 ::selection {
-  background: rgba(26, 26, 26, 0.12);
+  background: rgba(13, 27, 42, 0.08);
 }
 
 ::-webkit-scrollbar {
@@ -71,11 +67,11 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #DDD;
+  background: var(--color-border-default);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #CCC;
+  background: var(--color-text-tertiary);
 }
 </style>

@@ -26,17 +26,18 @@
   left: 0;
   right: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #EBEBEB;
-  height: 56px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-bottom: 1px solid var(--color-border-light);
+  height: var(--header-height);
   touch-action: manipulation;
 }
 
 .nav-inner {
-  max-width: 1280px;
+  max-width: var(--max-width);
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 var(--page-padding);
   height: 100%;
   display: flex;
   align-items: center;
@@ -50,46 +51,62 @@
 }
 
 .brand-text {
-  font-size: 17px;
+  font-size: var(--text-xl);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-primary);
   letter-spacing: -0.02em;
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .nav-link {
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 500;
-  color: #999;
+  color: var(--color-text-tertiary);
   text-decoration: none;
   padding: 6px 14px;
-  border-radius: 6px;
-  transition: all 0.15s;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
   position: relative;
 }
 
 .nav-link:hover {
-  color: #555;
-  background: #F5F5F5;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
 }
 
 .nav-link-active {
-  color: #1A1A1A;
-  background: #F0F0F0;
+  color: var(--color-text-primary);
+  background: transparent;
+  font-weight: 600;
 }
 
-@media (max-width: 640px) {
+.nav-link-active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  background: var(--color-primary-accent);
+  border-radius: 1px;
+}
+
+@media (max-width: 768px) {
   .nav-inner {
-    padding: 0 16px;
+    padding: 0 var(--page-padding-mobile);
   }
   .nav-link {
     padding: 6px 12px;
-    font-size: 13px;
+    font-size: var(--text-base);
+  }
+  .nav-link-active::after {
+    left: 12px;
+    right: 12px;
   }
 }
 </style>
