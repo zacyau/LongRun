@@ -27,21 +27,29 @@
     </header>
 
     <main class="anchor-main">
-      <div class="charts-container">
+      <div v-if="store.data" class="charts-container">
         <div class="chart-section main-chart-section">
-          <LoadingOverlay :loading="store.loading" />
           <MainChart :data="store.data" />
         </div>
         <div class="sub-charts">
           <div class="chart-section">
-            <LoadingOverlay :loading="store.loading" />
             <RsiChart :data="store.data" />
           </div>
           <div class="chart-section">
-            <LoadingOverlay :loading="store.loading" />
             <DrawdownChart :data="store.data" />
           </div>
         </div>
+      </div>
+
+      <div v-else-if="store.loading" class="loading-state">
+        <span class="loading-dot"></span>
+        <span class="loading-dot"></span>
+        <span class="loading-dot"></span>
+        <p>加载图表数据...</p>
+      </div>
+
+      <div v-else class="empty-state">
+        <p>暂无数据</p>
       </div>
     </main>
 
@@ -63,7 +71,6 @@ import MainChart from '@/components/anchor/MainChart.vue'
 import RsiChart from '@/components/anchor/RsiChart.vue'
 import DrawdownChart from '@/components/anchor/DrawdownChart.vue'
 import TimeRangeSelector from '@/components/anchor/TimeRangeSelector.vue'
-import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import UsageGuideModal from '@/components/anchor/UsageGuideModal.vue'
 
 const store = useAnchorStore()
@@ -228,6 +235,41 @@ onMounted(() => {
 @keyframes slideUp {
   from { opacity: 0; transform: translateX(-50%) translateY(16px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.loading-state {
+  text-align: center;
+  padding: 60px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.loading-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary-accent);
+  animation: dotBounce 1.2s infinite ease-in-out;
+}
+
+.loading-dot:nth-child(2) { animation-delay: 0.15s; }
+.loading-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.4); opacity: 0.3; }
+  40% { transform: scale(1.2); opacity: 1; }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-md);
 }
 
 @media (max-width: 768px) {
