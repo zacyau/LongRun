@@ -265,35 +265,84 @@ def _calculate_rsi14(close: pd.Series) -> pd.Series:
 
 def _get_macdv_trend(macdv: float) -> str:
     if macdv > 150:
-        return "momentum_peak"
+        return "极度多头"
     elif macdv > 50:
-        return "strong_up"
+        return "强势多头"
+    elif macdv > 0:
+        return "温和多头"
     elif macdv >= -50:
-        return "oscillation"
+        return "中性"
     elif macdv >= -150:
-        return "strong_down"
+        return "强势空头"
     else:
-        return "momentum_decay"
+        return "极度空头"
 
 
 def _get_rsi_signal(rsi: float) -> str:
-    if rsi > 70:
-        return "overbought"
-    elif rsi < 30:
-        return "oversold"
-    return "neutral"
+    if rsi > 80:
+        return "极度超买"
+    elif rsi > 70:
+        return "超买"
+    elif rsi > 55:
+        return "中性偏强"
+    elif rsi >= 45:
+        return "中性"
+    elif rsi >= 30:
+        return "中性偏弱"
+    elif rsi >= 20:
+        return "超卖"
+    else:
+        return "极度超卖"
 
 
-def _get_recommendation(macdv: float, rsi: float) -> str:
-    if macdv < 50 and rsi > 70:
-        return "右侧卖点"
-    if macdv > 150 and rsi > 70:
-        return "左侧卖点"
-    if macdv < -150 and rsi < 30:
-        return "左侧买点"
-    if 50 <= macdv <= 150 and rsi < 30:
-        return "右侧买点"
-    return "观望"
+_COMBINED_STATUS = {
+    ("极度多头", "极度超买"): "动能与情绪均处极端狂热区域",
+    ("极度多头", "超买"): "动能极端，价格已过热",
+    ("极度多头", "中性偏强"): "动能极端，价格偏强但未过热",
+    ("极度多头", "中性"): "动能极端，价格均衡",
+    ("极度多头", "中性偏弱"): "动能极端，价格偏弱，背离",
+    ("极度多头", "超卖"): "动能极端，价格超卖，严重背离",
+    ("极度多头", "极度超卖"): "动能极端，价格极度超卖，强烈背离",
+    ("强势多头", "极度超买"): "动能强势，价格极度超买",
+    ("强势多头", "超买"): "趋势强势，价格已过热",
+    ("强势多头", "中性偏强"): "健康上升趋势，未过热",
+    ("强势多头", "中性"): "趋势向上，价格均衡",
+    ("强势多头", "中性偏弱"): "强势趋势中出现回调",
+    ("强势多头", "超卖"): "强势上升中出现深幅回调",
+    ("强势多头", "极度超卖"): "强势上升中出现极端回调",
+    ("温和多头", "极度超买"): "动能温和，价格极度超买",
+    ("温和多头", "超买"): "动能温和，价格过热",
+    ("温和多头", "中性偏强"): "震荡偏多，价格偏强",
+    ("温和多头", "中性"): "震荡偏多，价格均衡",
+    ("温和多头", "中性偏弱"): "震荡偏多，价格偏弱",
+    ("温和多头", "超卖"): "震荡偏多，超跌反弹结构",
+    ("温和多头", "极度超卖"): "震荡偏多，极度超跌",
+    ("中性", "极度超买"): "方向不明，价格极度超买",
+    ("中性", "超买"): "方向不明，价格过热",
+    ("中性", "中性偏强"): "方向不明，价格偏强",
+    ("中性", "中性"): "无方向盘整，动能与情绪均衡",
+    ("中性", "中性偏弱"): "方向不明，价格偏弱",
+    ("中性", "超卖"): "方向不明，价格过冷",
+    ("中性", "极度超卖"): "方向不明，价格极度超卖",
+    ("强势空头", "极度超买"): "强势下跌中出现极端反弹",
+    ("强势空头", "超买"): "强势下跌中出现急速反弹",
+    ("强势空头", "中性偏强"): "强势下跌中出现反弹",
+    ("强势空头", "中性"): "趋势向下，价格均衡",
+    ("强势空头", "中性偏弱"): "健康下跌趋势，未超跌",
+    ("强势空头", "超卖"): "趋势弱势，价格已过冷",
+    ("强势空头", "极度超卖"): "趋势弱势，价格极度过冷",
+    ("极度空头", "极度超买"): "动能极端，价格极度超买，强烈背离",
+    ("极度空头", "超买"): "动能极端，价格超买，严重背离",
+    ("极度空头", "中性偏强"): "动能极端，价格偏强，背离",
+    ("极度空头", "中性"): "动能极端，价格均衡",
+    ("极度空头", "中性偏弱"): "动能极端，价格偏弱但未过冷",
+    ("极度空头", "超卖"): "动能极端，价格已过冷",
+    ("极度空头", "极度超卖"): "动能与情绪均处极端恐慌区域",
+}
+
+
+def _get_status_description(macdv_trend: str, rsi_signal: str) -> str:
+    return _COMBINED_STATUS.get((macdv_trend, rsi_signal), "状态待定")
 
 
 def query_single_stock(code_or_name: str) -> dict:
@@ -325,6 +374,9 @@ def query_single_stock(code_or_name: str) -> dict:
         stock_code = sina_code[2:]
         stock_name = rt["name"] if rt["name"] else stock_code
 
+        macdv_trend = _get_macdv_trend(latest_macdv)
+        rsi_signal = _get_rsi_signal(latest_rsi)
+
         return {
             "stock_name": stock_name,
             "stock_code": stock_code,
@@ -332,9 +384,9 @@ def query_single_stock(code_or_name: str) -> dict:
             "current_price": round(current_price, 2),
             "macdv": round(latest_macdv, 2),
             "rsi14": round(latest_rsi, 2),
-            "macdv_trend": _get_macdv_trend(latest_macdv),
-            "rsi14_signal": _get_rsi_signal(latest_rsi),
-            "recommendation": _get_recommendation(latest_macdv, latest_rsi),
+            "macdv_trend": macdv_trend,
+            "rsi14_signal": rsi_signal,
+            "status_description": _get_status_description(macdv_trend, rsi_signal),
             "error": None,
         }
 
@@ -346,15 +398,16 @@ def query_single_stock(code_or_name: str) -> dict:
             "current_price": 0.0,
             "macdv": 0.0,
             "rsi14": 0.0,
-            "macdv_trend": "neutral",
-            "rsi14_signal": "neutral",
-            "recommendation": None,
+            "macdv_trend": "中性",
+            "rsi14_signal": "中性",
+            "status_description": None,
             "error": str(e),
         }
 
 
 def query_batch_stocks(queries: list[str]) -> dict:
     results = [query_single_stock(q) for q in queries]
+    results.sort(key=lambda r: r.get("rsi14", 0.0) if not r.get("error") else -999, reverse=True)
     return {
         "results": results,
         "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

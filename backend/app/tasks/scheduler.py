@@ -3,7 +3,7 @@ from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime
 import logging
 
-from app.services.baostock_service import sina_data_service
+from app.services.sina_service import sina_data_service
 from app.services.hongli_service import hongli_data_service
 from app.services.cache_service import cache_service
 from app.config import get_settings

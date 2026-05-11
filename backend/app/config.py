@@ -11,9 +11,6 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./long_run_data.db"
     cache_ttl_hours: int = 24
 
-    bs_username: str = ""
-    bs_password: str = ""
-
     data_update_hour: int = 20
     data_update_minute: int = 0
 

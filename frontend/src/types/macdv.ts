@@ -7,7 +7,7 @@ export interface MacdvStockItem {
   rsi14: number
   macdv_trend: string
   rsi14_signal: string
-  recommendation: string | null
+  status_description: string | null
   error: string | null
 }
 

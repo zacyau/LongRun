@@ -5,7 +5,7 @@ import asyncio
 import logging
 
 from app.models.schemas import ChartDataResponse, HealthResponse
-from app.services.baostock_service import sina_data_service
+from app.services.sina_service import sina_data_service
 from app.services.indicator_service import indicator_service
 from app.services.cache_service import cache_service
 

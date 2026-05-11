@@ -5,7 +5,7 @@
         <div class="header-brand">
           <div class="brand-info">
             <h1 class="header-title">趋势信号</h1>
-            <p class="header-subtitle">MACD-V · RSI14 买卖信号研判工具</p>
+            <p class="header-subtitle">MACD-V · RSI14 状态研判工具</p>
           </div>
         </div>
         <div class="header-actions">
@@ -79,7 +79,7 @@
                 <th>现价</th>
                 <th>MACD-V</th>
                 <th>RSI 14</th>
-                <th>买卖建议</th>
+                <th>状态描述</th>
               </tr>
             </thead>
             <tbody>
@@ -98,7 +98,7 @@
                     <span class="tag" :class="rsiTagClass(item.rsi14_signal)">{{ rsiSignalText(item.rsi14_signal) }}</span>
                   </td>
                   <td>
-                    <span class="rec-tag" :class="recTagClass(item.recommendation)">{{ item.recommendation }}</span>
+                    <span class="rec-tag" :class="statusTagClass(item.status_description)">{{ item.status_description }}</span>
                   </td>
                 </template>
                 <template v-else>
@@ -133,32 +133,67 @@
               </ul>
             </div>
             <div class="guide-col">
-              <h3 class="guide-col-title">交易信号</h3>
+              <h3 class="guide-col-title">MACD-V 状态标签</h3>
               <div class="signal-rows">
                 <div class="signal-row">
-                  <span class="rec-tag rec-tag-blue">右侧买点</span>
-                  <span class="signal-desc">MACD-V +50~+150（确认强势）+ RSI &lt; 30（超卖）</span>
+                  <span class="rec-tag rec-tag-red">极度多头</span>
+                  <span class="signal-desc">MACD-V &gt; +150，动能极端狂热</span>
                 </div>
                 <div class="signal-row">
-                  <span class="rec-tag rec-tag-green">左侧买点</span>
-                  <span class="signal-desc">MACD-V &lt; -150（恐慌性超卖）+ RSI &lt; 30（超卖）</span>
+                  <span class="rec-tag rec-tag-orange">强势多头</span>
+                  <span class="signal-desc">MACD-V +50 ~ +150，动能充裕</span>
                 </div>
                 <div class="signal-row">
-                  <span class="rec-tag rec-tag-red">左侧卖点</span>
-                  <span class="signal-desc">MACD-V &gt; +150（情绪过热）+ RSI &gt; 70（超买）</span>
+                  <span class="rec-tag rec-tag-rose">温和多头</span>
+                  <span class="signal-desc">MACD-V 0 ~ +50，略偏多</span>
                 </div>
                 <div class="signal-row">
-                  <span class="rec-tag rec-tag-orange">右侧卖点</span>
-                  <span class="signal-desc">MACD-V &lt; +50（趋势转弱）+ RSI &gt; 70（超买）</span>
+                  <span class="rec-tag rec-tag-gray">中性</span>
+                  <span class="signal-desc">MACD-V -50 ~ +50，无趋势区</span>
                 </div>
                 <div class="signal-row">
-                  <span class="rec-tag rec-tag-gray">观望</span>
-                  <span class="signal-desc">MACD-V 在 -50~+50 区间（无趋势区），无论 RSI 如何</span>
+                  <span class="rec-tag rec-tag-cyan">强势空头</span>
+                  <span class="signal-desc">MACD-V -150 ~ -50，空方主导</span>
+                </div>
+                <div class="signal-row">
+                  <span class="rec-tag rec-tag-purple">极度空头</span>
+                  <span class="signal-desc">MACD-V &lt; -150，恐慌性超卖区</span>
+                </div>
+              </div>
+              <h3 class="guide-col-title" style="margin-top:16px">RSI14 状态标签</h3>
+              <div class="signal-rows">
+                <div class="signal-row">
+                  <span class="rec-tag rec-tag-red">极度超买</span>
+                  <span class="signal-desc">RSI &gt; 80</span>
+                </div>
+                <div class="signal-row">
+                  <span class="rec-tag rec-tag-orange">超买</span>
+                  <span class="signal-desc">RSI 70 ~ 80</span>
+                </div>
+                <div class="signal-row">
+                  <span class="rec-tag rec-tag-rose">中性偏强</span>
+                  <span class="signal-desc">RSI 55 ~ 70</span>
+                </div>
+                <div class="signal-row">
+                  <span class="rec-tag rec-tag-gray">中性</span>
+                  <span class="signal-desc">RSI 45 ~ 55</span>
+                </div>
+                <div class="signal-row">
+                  <span class="rec-tag rec-tag-cyan">中性偏弱</span>
+                  <span class="signal-desc">RSI 30 ~ 45</span>
+                </div>
+                <div class="signal-row">
+                  <span class="rec-tag rec-tag-green">超卖</span>
+                  <span class="signal-desc">RSI 20 ~ 30</span>
+                </div>
+                <div class="signal-row">
+                  <span class="rec-tag rec-tag-purple">极度超卖</span>
+                  <span class="signal-desc">RSI &lt; 20</span>
                 </div>
               </div>
             </div>
           </div>
-          <p class="guide-disclaimer">以上信号仅供参考，不构成投资建议。</p>
+          <p class="guide-disclaimer">以上状态描述仅供参考，不构成投资建议。</p>
         </div>
       </div>
     </main>
@@ -195,24 +230,18 @@ function macdvClass(v: number) {
 
 function macdvTagClass(trend: string) {
   const map: Record<string, string> = {
-    momentum_peak: 'tag-red',
-    strong_up: 'tag-orange',
-    oscillation: 'tag-gray',
-    strong_down: 'tag-cyan',
-    momentum_decay: 'tag-purple',
+    '极度多头': 'tag-red',
+    '强势多头': 'tag-orange',
+    '温和多头': 'tag-rose',
+    '中性': 'tag-gray',
+    '强势空头': 'tag-cyan',
+    '极度空头': 'tag-purple',
   }
   return map[trend] || 'tag-gray'
 }
 
 function macdvTrendText(trend: string) {
-  const map: Record<string, string> = {
-    momentum_peak: '动量峰值',
-    strong_up: '强劲上涨',
-    oscillation: '震荡',
-    strong_down: '强劲下跌',
-    momentum_decay: '动量衰竭',
-  }
-  return map[trend] || '震荡'
+  return trend || '中性'
 }
 
 function rsiClass(v: number) {
@@ -222,22 +251,29 @@ function rsiClass(v: number) {
 }
 
 function rsiTagClass(signal: string) {
-  if (signal === 'overbought') return 'tag-red'
-  if (signal === 'oversold') return 'tag-green'
-  return 'tag-gray'
+  const map: Record<string, string> = {
+    '极度超买': 'tag-red',
+    '超买': 'tag-orange',
+    '中性偏强': 'tag-rose',
+    '中性': 'tag-gray',
+    '中性偏弱': 'tag-cyan',
+    '超卖': 'tag-green',
+    '极度超卖': 'tag-purple',
+  }
+  return map[signal] || 'tag-gray'
 }
 
 function rsiSignalText(signal: string) {
-  if (signal === 'overbought') return '超买'
-  if (signal === 'oversold') return '超卖'
-  return '中性'
+  return signal || '中性'
 }
 
-function recTagClass(rec: string | null) {
-  if (rec === '右侧买点') return 'rec-tag-blue'
-  if (rec === '左侧买点') return 'rec-tag-green'
-  if (rec === '左侧卖点') return 'rec-tag-red'
-  if (rec === '右侧卖点') return 'rec-tag-orange'
+function statusTagClass(desc: string | null) {
+  if (!desc) return 'rec-tag-gray'
+  if (desc.includes('极端') || desc.includes('强烈背离')) return 'rec-tag-red'
+  if (desc.includes('健康') || desc.includes('未过热') || desc.includes('未超跌')) return 'rec-tag-green'
+  if (desc.includes('过热') || desc.includes('过冷') || desc.includes('超买')) return 'rec-tag-orange'
+  if (desc.includes('均衡') || desc.includes('盘整')) return 'rec-tag-gray'
+  if (desc.includes('回调') || desc.includes('反弹')) return 'rec-tag-cyan'
   return 'rec-tag-gray'
 }
 </script>
@@ -545,6 +581,7 @@ function recTagClass(rec: string | null) {
 .tag-cyan { background: var(--color-bg-cyan); color: #0891B2; border: 1px solid #A5F3FC; }
 .tag-purple { background: var(--color-bg-purple); color: #7C3AED; border: 1px solid #DDD6FE; }
 .tag-green { background: var(--color-bg-success); color: #059669; border: 1px solid #BBF7D0; }
+.tag-rose { background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
 
 .rec-tag {
   display: inline-block;
@@ -553,13 +590,18 @@ function recTagClass(rec: string | null) {
   padding: 3px 8px;
   border-radius: var(--radius-sm);
   white-space: nowrap;
+  min-width: 4em;
+  text-align: center;
 }
 
 .rec-tag-blue { background: var(--color-bg-info); color: #1D4ED8; border: 1px solid #BFDBFE; }
 .rec-tag-green { background: var(--color-bg-success); color: #047857; border: 1px solid #A7F3D0; }
 .rec-tag-red { background: var(--color-bg-danger); color: #B91C1C; border: 1px solid #FECACA; }
 .rec-tag-orange { background: var(--color-bg-warning); color: #C2410C; border: 1px solid #FED7AA; }
+.rec-tag-rose { background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
 .rec-tag-gray { background: var(--color-bg-subtle); color: #6B7280; border: 1px solid var(--color-border-default); }
+.rec-tag-cyan { background: var(--color-bg-cyan); color: #0E7490; border: 1px solid #A5F3FC; }
+.rec-tag-purple { background: var(--color-bg-purple); color: #6D28D9; border: 1px solid #DDD6FE; }
 
 .guide-card {
   background: var(--color-bg-card);

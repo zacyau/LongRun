@@ -11,7 +11,7 @@ class MacdvStockItem(BaseModel):
     rsi14: float
     macdv_trend: str
     rsi14_signal: str
-    recommendation: Optional[str] = None
+    status_description: Optional[str] = None
     error: Optional[str] = None
 
 
