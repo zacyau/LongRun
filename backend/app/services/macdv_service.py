@@ -1,7 +1,20 @@
 """
-趋势信号服务
-数据源: 新浪财经
-MACD-V 指标 + RSI14 买卖信号
+趋势信号服务模块
+
+功能说明:
+- 提供股票/指数的趋势分析服务
+- 基于MACD-V指标和RSI14指标判断市场状态和买卖信号
+- 支持批量查询多只股票的技术指标
+
+数据来源: 新浪财经
+核心指标:
+    - MACD-V (MACD归一化指标): 衡量价格动能，将MACD值除以ATR进行标准化
+    - RSI14: 相对强弱指数，14日周期，用于判断超买超卖状态
+
+信号体系:
+    - MACD-V趋势信号: 极度多头/强势多头/温和多头/中性/强势空头/极度空头
+    - RSI信号: 极度超买/超买/中性偏强/中性/中性偏弱/超卖/极度超卖
+    - 综合状态描述: 根据MACD-V和RSI的组合给出市场状态解读
 """
 import math
 import pandas as pd
@@ -11,6 +24,9 @@ from datetime import datetime
 from typing import Optional
 
 
+# 常用股票/指数代码映射表
+# 支持中文名称、6位代码、sh/sz前缀等多种输入格式自动识别
+# 格式: "名称或代码": "新浪格式代码"
 _COMMON_STOCKS = {
     "贵州茅台": "sh600519", "茅台": "sh600519",
     "中国平安": "sh601318", "平安": "sh601318",
@@ -117,36 +133,63 @@ _COMMON_STOCKS = {
 
 
 def _normalize(raw: str) -> Optional[str]:
+    """
+    将用户输入的股票代码或名称规范化为新浪格式代码
+
+    支持的输入格式:
+    1. 中文名称：如"贵州茅台"、"茅台"
+    2. 标准代码带前缀：如"sh600519"、"sz000002"
+    3. 带点的格式：如"sh.600519"、"sz.000002"
+    4. 纯数字代码：根据数字范围判断交易所
+
+    股票代码规则:
+    - 6开头：上海证券交易所（sh）
+    - 5开头：上海证券交易所（sh）
+    - 0或3开头：深圳证券交易所（sz）
+    - 4或8开头：北京证券交易所（bj）
+
+    返回值:
+    - 成功：新浪格式代码如"sh600519"
+    - 失败：None
+    """
     raw = raw.strip()
     if not raw:
         return None
 
+    # 1. 首先尝试从常用股票映射表中查找（支持中文名称）
     if raw.lower() in {k.lower() for k in _COMMON_STOCKS}:
         for k, v in _COMMON_STOCKS.items():
             if k.lower() == raw.lower():
                 return v
 
+    # 2. 处理带点的格式，如"sh.600519" -> "sh600519"
     if raw.startswith(("sh.", "sz.", "bj.")):
         code = raw.split(".", 1)[1]
-        prefix = raw[:2]
+        prefix = raw[:2]  # "sh"或"sz"或"bj"
         return f"{prefix}{code}"
 
+    # 3. 处理纯数字代码，根据前缀判断交易所
     pure = raw.lstrip("shzxbjSHZXBJ./- ")
     if pure.isdigit():
         code = pure
+        # 北京证券交易所：4开头（A股）、8开头（北交所）
         if code.startswith(("4", "8")):
             return f"bj{code}"
+        # 上海证券交易所：6开头或5开头
         elif code.startswith("6") or code.startswith("5"):
             return f"sh{code}"
+        # 深圳证券交易所：其他数字（主要是0、3开头）
         else:
             return f"sz{code}"
 
+    # 4. 最后尝试通过新浪搜索API查询
     url = f"https://suggest3.sinajs.cn/suggest/type=11,12,13,14,15&key={raw}"
     headers = {"Referer": "https://finance.sina.com.cn"}
     try:
         resp = requests.get(url, headers=headers, timeout=5)
         text = resp.text.strip()
         if text and "=" in text:
+            # 解析返回格式: var suggest_xx = "名称,代码,...";
             content = text.split("=", 1)[1].strip().strip('";\n')
             if content:
                 fields = content.split(",")
@@ -161,10 +204,25 @@ def _normalize(raw: str) -> Optional[str]:
 
 
 def _kline_code(sina_code: str) -> str:
+    """
+    从新浪完整代码中提取纯数字代码
+
+    例如: "sh600519" -> "600519"
+    """
     return sina_code[2:]
 
 
 def _fetch_kline_sina(sina_code: str, datalen: int = 300) -> pd.DataFrame:
+    """
+    从新浪财经API获取K线数据
+
+    参数说明:
+        sina_code: 新浪格式的股票代码，如"sh600519"
+        datalen: 请求的数据条数，默认300条（约1年多日线数据）
+
+    返回值:
+        pd.DataFrame，包含列：date、open、close、high、low、volume
+    """
     url = (
         f"https://money.finance.sina.com.cn/quotes_service/api/json_v2.php"
         f"/CN_MarketData.getKLineData?symbol={sina_code}&scale=240&ma=5&datalen={datalen}"
@@ -193,18 +251,51 @@ def _fetch_kline_sina(sina_code: str, datalen: int = 300) -> pd.DataFrame:
 
 
 def _fetch_realtime_sina(sina_code: str) -> dict:
+    """
+    从新浪财经获取股票实时行情数据
+
+    参数说明:
+        sina_code: 新浪格式的股票代码，如"sh600519"
+
+    返回值:
+        dict，包含字段：
+        - name: 股票名称
+        - current_price: 当前价格
+        - yesterday_close: 昨日收盘价
+        - today_open: 今日开盘价
+        - today_high: 今日最高价
+        - today_low: 今日最低价
+        - date: 交易日期
+
+    数据来源:
+        新浪财经实时行情API (hq.sinajs.cn)
+        返回数据格式: var hq_str_sh600519="名称,今日开盘价,昨日收盘价,当前价格,今日最高价,今日最低价,...";
+    """
     url = f"https://hq.sinajs.cn/list={sina_code}"
     headers = {"Referer": "https://finance.sina.com.cn"}
     resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
     text = resp.text.strip()
+
+    # 检查是否返回空数据
     if "=\"\"}" in text or "var hq_str" not in text:
         raise ValueError(f"未找到股票 {sina_code} 的实时数据")
 
+    # 解析新浪返回的实时数据
+    # 格式: var hq_str_sh600519="贵州茅台,1800.00,1790.00,1810.50,1820.00,1790.00,...2024-01-15";
     raw = text.split('"')[1]
     fields = raw.split(",")
     if len(fields) < 10:
         raise ValueError(f"股票 {sina_code} 数据格式异常")
+
+    # 字段索引说明:
+    # 0: 股票名称
+    # 1: 今日开盘价
+    # 2: 昨日收盘价
+    # 3: 当前价格
+    # 4: 今日最高价
+    # 5: 今日最低价
+    # 30: 交易日期（可能为空）
 
     name = fields[0]
     current_price = float(fields[3]) if fields[3] else 0.0
@@ -226,44 +317,140 @@ def _fetch_realtime_sina(sina_code: str) -> dict:
 
 
 def _calculate_macdv(close: pd.Series, high: pd.Series, low: pd.Series) -> pd.Series:
+    """
+    计算MACD-V指标（MACD归一化版本）
+
+    MACD-V = (EMA12 - EMA26) / ATR26 * 100
+
+    计算步骤:
+    1. 计算真实波幅（TR）：max(H-L, max(|H-PC|, |L-PC|))
+       其中PC是前一日收盘价
+    2. 计算ATR26：TR的26日移动平均
+    3. 计算EMA12：收盘价的12日指数移动平均
+    4. 计算EMA26：收盘价的26日指数移动平均
+    5. 计算DIF：EMA12 - EMA26
+    6. 计算MACD-V：DIF / ATR26 * 100
+
+    参数说明:
+        close: 收盘价序列
+        high: 最高价序列
+        low: 最低价序列
+
+    返回值:
+        MACD-V值序列，正值表示多头动能，负值表示空头动能
+
+    信号解读:
+        - MACD-V > 0: 多头趋势
+        - MACD-V < 0: 空头趋势
+        - |MACD-V| 越大，动能越强
+    """
+    # 数据不足26条时返回零值（无法计算有效指标）
     if len(close) < 26:
         return pd.Series([0.0] * len(close), index=close.index)
 
+    # 前一日收盘价（用于计算真实波幅）
     prev_close = close.shift(1)
+
+    # 计算真实波幅（True Range, TR）
+    # TR = max(H-L, |H-PC|, |L-PC|)
+    # 这里计算三个值的最大值
     mytr = np.maximum(
-        high - low,
-        np.maximum((high - prev_close).abs(), (low - prev_close).abs())
+        high - low,  # 当日高低点差
+        np.maximum((high - prev_close).abs(), (low - prev_close).abs())  # 跳空幅度
     )
+
+    # 计算ATR26：TR的26日移动平均（用于标准化MACD）
     atr26 = mytr.rolling(window=26, min_periods=1).mean()
+
+    # 计算EMA12和EMA26（指数移动平均线）
     ema12 = close.ewm(span=12, adjust=False).mean()
     ema26 = close.ewm(span=26, adjust=False).mean()
+
+    # 计算DIF（差离值）：短期EMA与长期EMA的差值
     diff = ema12 - ema26
-    rawvalue = diff / atr26.replace(0, np.nan)
+
+    # 归一化：将DIF除以ATR得到MACD-V
+    # 乘以100是为了将数值放大，便于阅读和比较
+    rawvalue = diff / atr26.replace(0, np.nan)  # 避免除零错误
     macdv = np.where(atr26 > 0, rawvalue * 100, 0.0)
+
     return pd.Series(macdv, index=close.index)
 
 
 def _calculate_rsi14(close: pd.Series) -> pd.Series:
+    """
+    计算RSI14指标（相对强弱指数）
+
+    RSI = 100 - (100 / (1 + RS))
+    其中 RS = 平均涨幅 / 平均跌幅
+
+    计算方法:
+    - 使用Wilder平滑算法（指数移动平均）
+    - 前14日使用简单平均初始化
+    - 第15日开始使用平滑公式: AVG = (前一日AVG * 13 + 今日值) / 14
+
+    参数说明:
+        close: 收盘价序列
+
+    返回值:
+        RSI值序列，范围0-100
+
+    信号解读:
+        - RSI > 70: 超买区域
+        - RSI < 30: 超卖区域
+        - RSI = 50: 多空平衡
+    """
+    # 数据不足14条时返回中性值50
     if len(close) < 14:
         return pd.Series([50.0] * len(close), index=close.index)
 
+    # 计算价格变动（今日收盘价 - 昨日收盘价）
     delta = close.diff()
-    gain = delta.where(delta > 0, 0.0)
-    loss = (-delta).where(delta < 0, 0.0)
 
+    # 分离上涨和下跌部分
+    gain = delta.where(delta > 0, 0.0)   # 只保留正变动（上涨）
+    loss = (-delta).where(delta < 0, 0.0) # 只保留负变动（下跌），取绝对值
+
+    # 初始化前14日的平均值（简单移动平均）
     avg_gain = gain.rolling(window=14, min_periods=14).mean().copy()
     avg_loss = loss.rolling(window=14, min_periods=14).mean().copy()
 
+    # Wilder平滑算法：从第14日开始（索引14），逐日计算
+    # 公式: AVG(i) = (AVG(i-1) * 13 + value(i)) / 14
+    # 等价于 EMA(alpha=1/14)
     for i in range(14, len(gain)):
         avg_gain.iloc[i] = (avg_gain.iloc[i - 1] * 13 + gain.iloc[i]) / 14
         avg_loss.iloc[i] = (avg_loss.iloc[i - 1] * 13 + loss.iloc[i]) / 14
 
+    # 计算RS（相对强度）
     rs = avg_gain / avg_loss.replace(0, np.nan)
+
+    # 计算RSI
+    # 公式: RSI = 100 - (100 / (1 + RS))
+    # 当avg_loss为0时，RS为无穷大，RSI=100
     rsi = (100 - (100 / (1 + rs))).fillna(50.0)
+
     return rsi
 
 
 def _get_macdv_trend(macdv: float) -> str:
+    """
+    根据MACD-V值判断趋势强度
+
+    参数说明:
+        macdv: MACD-V指标值
+
+    返回值:
+        趋势描述字符串
+
+    分级标准:
+        - 极度多头 (>150): 动能极强，可能处于狂热上涨阶段
+        - 强势多头 (50-150): 上升趋势强劲
+        - 温和多头 (0-50): 轻微多头，动能较弱
+        - 中性 (-50-0): 多空平衡
+        - 强势空头 (-150--50): 下降趋势强劲
+        - 极度空头 (<-150): 动能极强，可能处于恐慌下跌阶段
+    """
     if macdv > 150:
         return "极度多头"
     elif macdv > 50:
@@ -279,6 +466,24 @@ def _get_macdv_trend(macdv: float) -> str:
 
 
 def _get_rsi_signal(rsi: float) -> str:
+    """
+    根据RSI值判断超买超卖状态
+
+    参数说明:
+        rsi: RSI指标值（0-100）
+
+    返回值:
+        信号描述字符串
+
+    分级标准:
+        - 极度超买 (>80): 市场可能过热，注意风险
+        - 超买 (70-80): 上涨过快，可能调整
+        - 中性偏强 (55-70): 多方占优但未过热
+        - 中性 (45-55): 多空平衡
+        - 中性偏弱 (30-45): 空方占优但未超卖
+        - 超卖 (20-30): 下跌过快，可能反弹
+        - 极度超卖 (<20): 市场可能恐慌
+    """
     if rsi > 80:
         return "极度超买"
     elif rsi > 70:
@@ -295,6 +500,9 @@ def _get_rsi_signal(rsi: float) -> str:
         return "极度超卖"
 
 
+# MACD-V趋势与RSI信号的组合状态描述映射表
+# 格式: (MACD-V趋势, RSI信号) -> 状态描述
+# 用于综合判断市场状态，识别潜在的交易机会和风险
 _COMBINED_STATUS = {
     ("极度多头", "极度超买"): "动能与情绪均处极端狂热区域",
     ("极度多头", "超买"): "动能极端，价格已过热",
@@ -342,38 +550,85 @@ _COMBINED_STATUS = {
 
 
 def _get_status_description(macdv_trend: str, rsi_signal: str) -> str:
+    """
+    根据MACD-V趋势和RSI信号获取综合状态描述
+
+    参数说明:
+        macdv_trend: MACD-V趋势描述（从_get_macdv_trend获取）
+        rsi_signal: RSI信号描述（从_get_rsi_signal获取）
+
+    返回值:
+        组合后的市场状态描述字符串
+        如果组合不在预定义表中，返回"状态待定"
+    """
     return _COMBINED_STATUS.get((macdv_trend, rsi_signal), "状态待定")
 
 
 def query_single_stock(code_or_name: str) -> dict:
+    """
+    查询单只股票的技术指标和趋势信号
+
+    参数说明:
+        code_or_name: 股票代码或名称，支持多种格式
+
+    返回值:
+        dict，包含字段：
+        - stock_name: 股票名称
+        - stock_code: 股票代码（纯数字部分）
+        - trade_date: 交易日期
+        - current_price: 当前价格
+        - macdv: MACD-V指标值
+        - rsi14: RSI14指标值
+        - macdv_trend: MACD-V趋势描述
+        - rsi14_signal: RSI信号描述
+        - status_description: 综合状态描述
+        - error: 错误信息（无错误时为None）
+
+    计算流程:
+    1. 规范化输入代码
+    2. 获取300条历史K线数据
+    3. 计算MACD-V和RSI14指标
+    4. 获取实时行情数据
+    5. 生成趋势信号和状态描述
+    """
     try:
+        # 1. 规范化输入代码
         sina_code = _normalize(code_or_name)
         if not sina_code:
             raise ValueError(f"无法解析股票代码: {code_or_name}")
 
+        # 2. 获取K线数据（需要至少26条数据计算MACD-V）
         df = _fetch_kline_sina(sina_code, datalen=300)
         if df.empty:
             raise ValueError(f"K线数据为空")
         if len(df) < 26:
             raise ValueError(f"数据不足（{len(df)}条），需要至少26条数据")
 
+        # 3. 提取价格数据
         close = df["close"].astype(float)
         high = df["high"].astype(float)
         low = df["low"].astype(float)
 
+        # 4. 计算技术指标
         macdv_series = _calculate_macdv(close, high, low)
         rsi_series = _calculate_rsi14(close)
 
+        # 获取最新指标值
         latest_macdv = float(macdv_series.iloc[-1])
         latest_rsi = float(rsi_series.iloc[-1])
 
+        # 5. 获取实时行情
         rt = _fetch_realtime_sina(sina_code)
+        # 如果实时日期为空，使用K线数据中最新日期
         trade_date = rt["date"] if rt["date"] else df["date"].max().strftime("%Y-%m-%d")
+        # 如果实时价格为0，使用K线收盘价
         current_price = rt["current_price"] if rt["current_price"] > 0 else float(df.iloc[-1]["close"])
 
+        # 提取股票代码和名称
         stock_code = sina_code[2:]
         stock_name = rt["name"] if rt["name"] else stock_code
 
+        # 6. 生成趋势信号
         macdv_trend = _get_macdv_trend(latest_macdv)
         rsi_signal = _get_rsi_signal(latest_rsi)
 
@@ -391,6 +646,7 @@ def query_single_stock(code_or_name: str) -> dict:
         }
 
     except Exception as e:
+        # 发生错误时返回错误信息
         return {
             "stock_name": code_or_name.strip(),
             "stock_code": "",
@@ -406,7 +662,23 @@ def query_single_stock(code_or_name: str) -> dict:
 
 
 def query_batch_stocks(queries: list[str]) -> dict:
+    """
+    批量查询多只股票的技术指标
+
+    参数说明:
+        queries: 股票代码或名称列表
+
+    返回值:
+        dict，包含字段：
+        - results: 每只股票的查询结果列表
+        - updated_at: 查询时间
+
+    说明:
+        结果按RSI14值降序排列（RSI高的排在前面）
+        发生错误的股票RSI值视为-999以排在最后
+    """
     results = [query_single_stock(q) for q in queries]
+    # 按RSI14降序排列，错误的排在最后
     results.sort(key=lambda r: r.get("rsi14", 0.0) if not r.get("error") else -999, reverse=True)
     return {
         "results": results,

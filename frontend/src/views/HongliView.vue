@@ -1,13 +1,40 @@
+<!--
+ * HongliView.vue - 中证红利/国证A股 轮动分析页面
+ *
+ * 功能说明：
+ * 本页面对比分析中证红利全收益指数与国证A股全收益指数的相对表现，
+ * 帮助投资者了解红利策略在A股市场的超额收益情况。
+ *
+ * 包含四个核心图表：
+ * 1. 收益走势对比：两只指数的价格走势叠加对比
+ * 2. 红利/国证比值布林线：分析比值的波动区间和位置
+ * 3. 40日收益差：短期超额收益分析
+ * 4. RSI14动能指标：比值的RSI动量分析
+ *
+ * 交互功能：
+ * - 时间范围切换（1年/3年/5年/全部/自定义）
+ * - 刷新数据
+ * - 各图表的说明弹窗
+ -->
+
 <template>
+  <!-- 主容器：整体页面采用深色主题背景 -->
   <div class="hongli-view">
+
+    <!-- 页面顶部导航栏 -->
     <header class="hongli-header">
       <div class="header-inner">
+        <!-- 品牌区域：页面标题和分析主题描述 -->
         <div class="header-brand">
           <div class="brand-info">
+            <!-- 主标题：对比两只指数 -->
             <h1 class="header-title">中证红利 <span class="title-sep">/</span> 国证A股</h1>
+            <!-- 副标题：说明分析方法和目的 -->
             <p class="header-subtitle">轮动三棱镜 · 中证红利相对国证A股的超额收益分析</p>
           </div>
         </div>
+
+        <!-- 右上角操作区：时间范围选择器 -->
         <div class="header-actions">
           <TimeRangeSelector
             v-model="store.selectedRange"
@@ -21,13 +48,19 @@
       </div>
     </header>
 
+    <!-- 页面主内容区 -->
     <main class="hongli-main">
+
+      <!-- 错误提示条：请求失败时显示在顶部 -->
       <div v-if="store.error" class="error-banner">
         <span>{{ store.error }}</span>
         <button @click="store.error = null">×</button>
       </div>
 
+      <!-- 图表网格容器：纵向排列四个图表卡片 -->
       <div v-if="store.data" class="charts-grid">
+
+        <!-- 图表卡片1：收益走势对比 -->
         <div class="chart-card">
           <div class="card-meta">
             <h3 class="card-title">收益走势对比</h3>
@@ -43,6 +76,7 @@
           <v-chart ref="vChart1Ref" class="chart-box" :option="chart1Option" :update-options="{ notMerge: false, replaceMerge: ['series'] }" />
         </div>
 
+        <!-- 图表卡片2：红利/国证比值布林线 -->
         <div class="chart-card">
           <div class="card-meta">
             <div class="card-title-group">
@@ -62,6 +96,7 @@
           <v-chart ref="vChart2Ref" class="chart-box" :option="chart2Option" :update-options="{ notMerge: false, replaceMerge: ['series'] }" />
         </div>
 
+        <!-- 图表卡片3：40日收益差 -->
         <div class="chart-card">
           <div class="card-meta">
             <div class="card-title-group">
@@ -80,6 +115,7 @@
           <v-chart ref="vChart3Ref" class="chart-box" :option="chart3Option" :update-options="{ notMerge: false, replaceMerge: ['series'] }" />
         </div>
 
+        <!-- 图表卡片4：RSI14动能指标 -->
         <div class="chart-card">
           <div class="card-meta">
             <div class="card-title-group">
@@ -99,6 +135,7 @@
         </div>
       </div>
 
+      <!-- 加载状态：数据请求中显示动画 -->
       <div v-else-if="store.loading" class="loading-state">
         <span class="loading-dot"></span>
         <span class="loading-dot"></span>
@@ -106,12 +143,15 @@
         <p>加载图表数据...</p>
       </div>
 
+      <!-- 空状态：无数据且未加载时显示 -->
       <div v-else class="empty-state">
         <p>暂无数据</p>
       </div>
     </main>
 
-    <!-- Modals -->
+    <!-- 弹窗区域：使用Teleport传送到body层 -->
+
+    <!-- 布林线说明弹窗 -->
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="showModal2" class="modal-overlay" @click.self="showModal2 = false">
@@ -142,6 +182,7 @@
       </Transition>
     </Teleport>
 
+    <!-- 收益差说明弹窗 -->
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="showModal3" class="modal-overlay" @click.self="showModal3 = false">
@@ -169,6 +210,7 @@
       </Transition>
     </Teleport>
 
+    <!-- RSI说明弹窗 -->
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="showModal4" class="modal-overlay" @click.self="showModal4 = false">
@@ -200,6 +242,24 @@
 </template>
 
 <script setup lang="ts">
+/*
+ * HongliView 组件逻辑
+ *
+ * ECharts 配置说明：
+ * - 使用 vue-echarts 封装库，配置基于 ECharts 5.x
+ * - 支持响应式resize，监听窗口变化自动调整图表尺寸
+ *
+ * 状态管理：
+ * - store: 使用hongliStore管理数据获取和状态
+ * - showModal2/3/4: 分别控制三个图表说明弹窗的显示状态
+ * - isMobile: 检测是否为移动端设备，用于调整图表X轴标签密度
+ *
+ * 图表配置：
+ * - chart1Option: 收益走势对比图 - 两条折线叠加
+ * - chart2Option: 布林线图 - 上轨、下轨、MA242、比值线和布林带填充
+ * - chart3Option: 收益差图 - 差值线和MA242均线
+ * - chart4Option: RSI图 - RSI线和MA242均线
+ */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -216,6 +276,7 @@ import { CHART_COLORS } from '@/utils/chartTheme'
 import type { TimeRangeOption } from '@/types/anchor'
 import TimeRangeSelector from '@/components/anchor/TimeRangeSelector.vue'
 
+// 注册ECharts必要的组件
 use([
   CanvasRenderer,
   LineChart,
@@ -226,6 +287,12 @@ use([
   MarkLineComponent,
 ])
 
+/*
+ * 组件状态定义
+ * - showModal2/3/4: 控制三个图表说明弹窗的显示状态
+ * - isMobile: 标识当前是否为移动端视口
+ * - vChart1/2/3/4Ref: ECharts图表实例引用，用于响应式调整
+ */
 const store = useHongliStore()
 const showModal2 = ref(false)
 const showModal3 = ref(false)
@@ -237,6 +304,12 @@ const vChart2Ref = ref()
 const vChart3Ref = ref()
 const vChart4Ref = ref()
 
+/*
+ * handleResize - 处理窗口大小变化
+ * 功能：
+ * 1. 检测是否为移动端（宽度<=768px）
+ * 2. 触发所有ECharts图表的resize方法以适应新尺寸
+ */
 function handleResize() {
   isMobile.value = window.innerWidth <= 768
   vChart1Ref.value?.chart?.resize()
@@ -245,6 +318,11 @@ function handleResize() {
   vChart4Ref.value?.chart?.resize()
 }
 
+/*
+ * 生命周期钩子
+ * - onMounted: 组件挂载时初始化，获取数据，添加窗口resize监听
+ * - onUnmounted: 组件卸载时移除监听，防止内存泄漏
+ */
 onMounted(() => {
   handleResize()
   window.addEventListener('resize', handleResize, { passive: true })
@@ -255,10 +333,19 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
 
+/*
+ * handleRangeChange - 处理时间范围变更
+ * @param range: 新的时间范围选项
+ * 功能：调用store获取新时间范围的图表数据
+ */
 function handleRangeChange(range: TimeRangeOption) {
   store.fetchData(range)
 }
 
+/*
+ * 图表颜色配置对象
+ * 为不同数据系列定义颜色，用于视觉区分
+ */
 const COLORS = {
   hongli: CHART_COLORS.hongli,
   guozheng: CHART_COLORS.guozheng,
@@ -273,6 +360,10 @@ const COLORS = {
   grid: CHART_COLORS.splitLine,
 }
 
+/*
+ * 基础提示框配置
+ * 统一所有图表的tooltip样式
+ */
 const tooltipBase = {
   trigger: 'axis' as const,
   confine: true,
@@ -284,8 +375,14 @@ const tooltipBase = {
   axisPointer: { type: 'cross' as const, lineStyle: { color: CHART_COLORS.crosshair, type: 'dashed' as const } },
 }
 
+// 基础网格配置：控制图表边距
 const gridBase = { left: 52, right: 20, top: 24, bottom: 24 }
 
+/*
+ * chart1Option - 收益走势对比图表配置
+ * 计算属性依赖store.data，当数据变化时自动更新
+ * 展示中证红利和国证A股两条收益率曲线的叠加
+ */
 const chart1Option = computed(() => {
   if (!store.data) return {}
   const d = store.data.chart1
@@ -303,6 +400,11 @@ const chart1Option = computed(() => {
   }
 })
 
+/*
+ * chart2Option - 布林线图表配置
+ * 展示红利/国证比值及其布林带通道
+ * 使用CustomChart渲染布林带填充区域
+ */
 const chart2Option = computed(() => {
   if (!store.data) return {}
   const d = store.data.chart2
@@ -310,6 +412,7 @@ const chart2Option = computed(() => {
   const upper = d.upper as (number | null)[]
   const lower = d.lower as (number | null)[]
   const N = dates.length
+  // 处理空值：将null值替换为对应位置的另一轨值
   const upperValid: number[] = upper.map((v, i) => v ?? (lower[i] ?? 0))
   const lowerValid: number[] = lower.map((v, i) => v ?? (upper[i] ?? 0))
 
@@ -322,17 +425,20 @@ const chart2Option = computed(() => {
     yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: CHART_COLORS.axisLabel, fontSize: 10, formatter: (v: number) => v.toFixed(2) }, splitLine: { lineStyle: { color: COLORS.grid, width: 1 } } },
     series: [
       { name: '上轨', type: 'line', data: d.upper, smooth: false, symbol: 'none', lineStyle: { width: 1.5, type: 'dotted', color: COLORS.bollinger }, z: 3 },
+      // 布林带填充区域：使用CustomChart自定义渲染
       {
         name: '布林带填充',
         type: 'custom',
         renderItem: (_params: any, api: any) => {
           if (N === 0) return null
           const pts: [number, number][] = new Array(N * 2)
+          // 上轨：从左到右
           for (let i = 0; i < N; i++) {
             const x = api.coord([i, upperValid[i]])[0]
             const yUp = api.coord([i, upperValid[i]])[1]
             pts[i] = [x, yUp]
           }
+          // 下轨：从右到左闭合多边形
           for (let i = N - 1; i >= 0; i--) {
             const x = api.coord([i, lowerValid[i]])[0]
             const yDown = api.coord([i, lowerValid[i]])[1]
@@ -351,6 +457,10 @@ const chart2Option = computed(() => {
   }
 })
 
+/*
+ * chart3Option - 40日收益差图表配置
+ * 展示中证红利与国证A股的40日累计收益差及其均线
+ */
 const chart3Option = computed(() => {
   if (!store.data) return {}
   const d = store.data.chart3
@@ -368,6 +478,10 @@ const chart3Option = computed(() => {
   }
 })
 
+/*
+ * chart4Option - RSI14动能指标图表配置
+ * 展示比值的RSI指标及其中期均线
+ */
 const chart4Option = computed(() => {
   if (!store.data) return {}
   const d = store.data.chart4
@@ -608,7 +722,6 @@ const chart4Option = computed(() => {
   40% { transform: scale(1.2); opacity: 1; }
 }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -712,7 +825,6 @@ const chart4Option = computed(() => {
   margin: 0;
 }
 
-/* Modal transition */
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity 0.2s ease;
