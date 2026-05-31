@@ -87,30 +87,10 @@ const deviationRate = computed(() => {
   return props.data?.deviation_rate ?? null
 })
 
-function buildYearLabels(dates: string[]): { index: number, year: string }[] {
-  const result: { index: number, year: string }[] = []
-  let lastYear = ''
-  for (let i = 0; i < dates.length; i++) {
-    const year = dates[i].substring(0, 4)
-    if (year !== lastYear) {
-      result.push({ index: i, year })
-      lastYear = year
-    }
-  }
-  return result
-}
-
 const chartOption = computed(() => {
   if (!props.data) return {}
 
   const { dates, index_values, sma1210, upper_band, lower_band } = props.data
-  const yearLabels = buildYearLabels(dates)
-
-  // Calculate data range for y-axis
-  const validValues = index_values.filter((v): v is number => v !== null && v !== undefined)
-  const minVal = Math.min(...validValues)
-  const maxVal = Math.max(...validValues)
-  const padding = (maxVal - minVal) * 0.05
 
   return {
     backgroundColor: 'transparent',
