@@ -16,6 +16,7 @@ import logging
 
 from app.services.sina_service import sina_data_service
 from app.services.hongli_service import hongli_data_service
+from app.services.growth_value_service import gv_data_service
 from app.services.cache_service import cache_service
 from app.config import get_settings
 
@@ -132,6 +133,31 @@ def update_hongli_data():
         logger.error(f"红利之美定时任务失败: {e}")
 
 
+def update_growth_value_data():
+    """
+    成长价值数据更新任务
+
+    处理的指数:
+        - sz159259: 成长100
+        - sz159263: 价值100
+    """
+    try:
+        logger.info(f"开始执行成长价值数据更新: {datetime.now()}")
+        gv_codes = [
+            ("sz159259", "sz159259"),
+            ("sz159263", "sz159263"),
+        ]
+        for code, symbol in gv_codes:
+            try:
+                df = gv_data_service.refresh_data(code, symbol)
+                logger.info(f"{code} 数据更新完成，共 {len(df)} 条")
+            except Exception as e:
+                logger.error(f"{code} 成长价值数据更新失败: {e}")
+        logger.info("成长价值数据更新完成")
+    except Exception as e:
+        logger.error(f"成长价值定时任务失败: {e}")
+
+
 # =============================================================================
 # 调度器管理
 # =============================================================================
@@ -181,6 +207,15 @@ def start_scheduler():
             trigger=trigger,
             id="daily_hongli_update",
             name="红利之美每日数据更新",
+            replace_existing=True
+        )
+
+        # 注册成长价值数据更新任务
+        scheduler.add_job(
+            update_growth_value_data,
+            trigger=trigger,
+            id="daily_growth_value_update",
+            name="成长价值每日数据更新",
             replace_existing=True
         )
 

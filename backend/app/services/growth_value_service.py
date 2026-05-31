@@ -1,0 +1,273 @@
+"""
+成长100 vs 价值100 对比分析服务模块
+
+功能说明:
+- 提供成长100指数与价值100指数的对比分析功能
+- 计算两种指数的相对强弱关系、偏离度、RSI等指标
+- 用于判断成长风格与价值风格的相对表现
+
+数据源: 新浪财经 CN_MarketData.getKLineData API
+缓存: SQLite (与五年之锚共享缓存服务)
+
+核心分析指标:
+1. 累计收益曲线 (Chart 1)
+2. 相对强弱比率及布林带 (Chart 2)
+3. 收益差分析 (Chart 3)
+4. RSI指标 (Chart 4)
+"""
+import math
+import pandas as pd
+import numpy as np
+import requests
+from datetime import datetime, timedelta
+from typing import Optional
+import logging
+
+from app.services.cache_service import cache_service
+
+logger = logging.getLogger(__name__)
+
+INDEX_CONFIGS = {
+    "growth": {"symbol": "sz159259", "name": "成长100", "code": "sz159259"},
+    "value": {"symbol": "sz159263", "name": "价值100", "code": "sz159263"},
+}
+
+GV_DATALEN = 2500
+
+
+def _raw_kline_to_df(rows: list) -> pd.DataFrame:
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.sort_values("date").reset_index(drop=True)
+    df["return"] = df["close"].pct_change().fillna(0)
+    df["total_return"] = (1 + df["return"]).cumprod() * 1000
+    return df
+
+
+def fetch_kline_sina(symbol: str, datalen: int = GV_DATALEN) -> pd.DataFrame:
+    url = (
+        f"https://money.finance.sina.com.cn/quotes_service/api/json_v2.php"
+        f"/CN_MarketData.getKLineData?symbol={symbol}&scale=240&ma=5&datalen={datalen}"
+    )
+    resp = requests.get(url, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+    if not data:
+        return pd.DataFrame()
+
+    records = []
+    for line in data:
+        records.append({
+            "date": line["day"],
+            "open": float(line["open"]),
+            "close": float(line["close"]),
+            "high": float(line["high"]),
+            "low": float(line["low"]),
+            "volume": float(line["volume"]),
+        })
+
+    df = pd.DataFrame(records)
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.sort_values("date").reset_index(drop=True)
+    df["return"] = df["close"].pct_change().fillna(0)
+    df["total_return"] = (1 + df["return"]).cumprod() * 1000
+    return df
+
+
+class GrowthValueDataService:
+    def update_data(self, index_code: str, symbol: str) -> pd.DataFrame:
+        if cache_service.is_cache_valid(index_code):
+            cached = cache_service.get_stock_data(index_code)
+            if cached:
+                logger.info(f"使用缓存数据: {index_code}")
+                return _raw_kline_to_df(cached)
+
+        logger.info(f"从新浪获取数据: {index_code} -> {symbol}")
+        df = fetch_kline_sina(symbol)
+        if df.empty:
+            raise Exception(f"获取 {index_code} 数据为空")
+
+        self._save_to_cache(index_code, df)
+        return df
+
+    def refresh_data(self, index_code: str, symbol: str) -> pd.DataFrame:
+        logger.info(f"强制刷新: {index_code}")
+        df = fetch_kline_sina(symbol)
+        if df.empty:
+            raise Exception(f"获取 {index_code} 数据为空")
+
+        self._save_to_cache(index_code, df)
+        return df
+
+    def _save_to_cache(self, index_code: str, df: pd.DataFrame):
+        records = df[["date", "open", "high", "low", "close", "volume"]].copy()
+        records["date"] = records["date"].dt.strftime("%Y-%m-%d")
+        records["amount"] = 0.0
+        records["adjustflag"] = "1"
+        cache_service.save_stock_data(index_code, records.to_dict("records"))
+        cache_service.set_last_update(
+            index_code,
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+        logger.info(f"{index_code} 缓存写入完成，共 {len(records)} 条")
+
+
+gv_data_service = GrowthValueDataService()
+
+
+def _slice_by_date(series: list, dates: list, start: Optional[str], end: Optional[str]) -> tuple:
+    if not dates:
+        return [], []
+    start_idx = 0
+    end_idx = len(dates) - 1
+    if start:
+        for i, d in enumerate(dates):
+            if d >= start:
+                start_idx = i
+                break
+    if end:
+        for i in range(len(dates) - 1, -1, -1):
+            if dates[i] <= end:
+                end_idx = i
+                break
+    if start_idx > end_idx:
+        return [], []
+    return dates[start_idx:end_idx + 1], series[start_idx:end_idx + 1]
+
+
+def get_all_data(start_date: Optional[str] = None, end_date: Optional[str] = None,
+                 force_refresh: bool = False) -> dict:
+    dfs = {}
+
+    for key, config in INDEX_CONFIGS.items():
+        if force_refresh:
+            df = gv_data_service.refresh_data(config["code"], config["symbol"])
+        else:
+            df = gv_data_service.update_data(config["code"], config["symbol"])
+        if df.empty:
+            raise Exception(f"获取 {config['name']} 数据失败")
+        dfs[key] = df
+
+    growth = dfs["growth"][["date", "close", "return", "total_return"]].copy()
+    value = dfs["value"][["date", "close", "return", "total_return"]].copy()
+    value.columns = ["date", "value_close", "value_return", "value_tr"]
+    growth.columns = ["date", "growth_close", "growth_return", "growth_tr"]
+
+    merged = growth.merge(value, on="date", how="inner")
+
+    def clean(v):
+        if v is None or (isinstance(v, float) and math.isnan(v)):
+            return None
+        return v
+
+    def clean_list(lst):
+        return [clean(x) for x in lst]
+
+    chart1_dates_full = merged["date"].dt.strftime("%Y-%m-%d").tolist()
+    chart1_growth_full = clean_list(merged["growth_tr"].round(4).tolist())
+    chart1_value_full = clean_list(merged["value_tr"].round(4).tolist())
+
+    merged["ratio"] = merged["growth_tr"] / merged["value_tr"]
+    window = 242
+    merged["ratio_ma"] = merged["ratio"].rolling(window=window, min_periods=1).mean()
+    merged["ratio_std"] = merged["ratio"].rolling(window=window, min_periods=1).std()
+    merged["upper"] = merged["ratio_ma"] + 2 * merged["ratio_std"]
+    merged["lower"] = merged["ratio_ma"] - 2 * merged["ratio_std"]
+
+    latest_full = merged.iloc[-1]
+    upper_val = latest_full["upper"]
+    lower_val = latest_full["lower"]
+    ma_val = latest_full["ratio_ma"]
+    ratio_val = latest_full["ratio"]
+    pct_b = (ratio_val - lower_val) / (upper_val - lower_val) if upper_val != lower_val else 0.5
+    bandwidth = (upper_val - lower_val) / ma_val * 100 if ma_val != 0 else 0
+
+    chart2_dates_full = chart1_dates_full
+    chart2_ratio_full = clean_list(merged["ratio"].round(4).tolist())
+    chart2_ma242_full = clean_list(merged["ratio_ma"].round(4).tolist())
+    chart2_upper_full = clean_list(merged["upper"].round(4).tolist())
+    chart2_lower_full = clean_list(merged["lower"].round(4).tolist())
+
+    merged["growth_40d"] = merged["growth_return"].rolling(window=40, min_periods=1).sum()
+    merged["value_40d"] = merged["value_return"].rolling(window=40, min_periods=1).sum()
+    merged["profit_diff"] = merged["growth_40d"] - merged["value_40d"]
+    merged["profit_diff_ma242"] = merged["profit_diff"].rolling(window=242, min_periods=1).mean()
+    mean_diff = float(merged["profit_diff"].mean())
+
+    chart3_dates_full = chart1_dates_full
+    chart3_diff_full = clean_list((merged["profit_diff"] * 100).round(4).tolist())
+    chart3_diff_ma242_full = clean_list((merged["profit_diff_ma242"] * 100).round(4).tolist())
+
+    delta = merged["ratio"].diff()
+    gain = delta.where(delta > 0, 0.0)
+    loss = (-delta).where(delta < 0, 0.0)
+    avg_gain = gain.rolling(window=14, min_periods=1).mean()
+    avg_loss = loss.rolling(window=14, min_periods=1).mean()
+    rs = avg_gain / avg_loss
+    rsi = (100 - (100 / (1 + rs))).fillna(50)
+    merged["rsi14"] = rsi
+    merged["rsi_ma242"] = rsi.rolling(window=242, min_periods=1).mean()
+    latest_rsi = float(merged["rsi14"].iloc[-1])
+    latest_rsi_ma = float(merged["rsi_ma242"].iloc[-1])
+
+    chart4_dates_full = chart1_dates_full
+    chart4_rsi_full = clean_list(merged["rsi14"].round(4).tolist())
+    chart4_rsi_ma242_full = clean_list(merged["rsi_ma242"].round(4).tolist())
+
+    sliced_dates, chart1_growth = _slice_by_date(chart1_growth_full, chart1_dates_full, start_date, end_date)
+    _, chart1_value = _slice_by_date(chart1_value_full, chart1_dates_full, start_date, end_date)
+    _, chart2_ratio = _slice_by_date(chart2_ratio_full, chart2_dates_full, start_date, end_date)
+    _, chart2_ma242 = _slice_by_date(chart2_ma242_full, chart2_dates_full, start_date, end_date)
+    _, chart2_upper = _slice_by_date(chart2_upper_full, chart2_dates_full, start_date, end_date)
+    _, chart2_lower = _slice_by_date(chart2_lower_full, chart2_dates_full, start_date, end_date)
+    _, chart3_diff = _slice_by_date(chart3_diff_full, chart3_dates_full, start_date, end_date)
+    _, chart3_diff_ma242 = _slice_by_date(chart3_diff_ma242_full, chart3_dates_full, start_date, end_date)
+    _, chart4_rsi = _slice_by_date(chart4_rsi_full, chart4_dates_full, start_date, end_date)
+    _, chart4_rsi_ma242 = _slice_by_date(chart4_rsi_ma242_full, chart4_dates_full, start_date, end_date)
+
+    sliced_len = len(sliced_dates)
+    slice_ratio = ratio_val
+    if sliced_len > 0:
+        slice_ratio = chart2_ratio[-1] if chart2_ratio[-1] is not None else ratio_val
+
+    pct_b_sliced = pct_b
+    if upper_val != lower_val and pct_b_sliced == pct_b:
+        last_upper = chart2_upper[-1] if chart2_upper[-1] is not None else upper_val
+        last_lower = chart2_lower[-1] if chart2_lower[-1] is not None else lower_val
+        last_ma = chart2_ma242[-1] if chart2_ma242[-1] is not None else ma_val
+        last_ratio = slice_ratio if slice_ratio is not None else ratio_val
+        if last_upper != last_lower and last_ma != 0:
+            pct_b_sliced = (last_ratio - last_lower) / (last_upper - last_lower)
+
+    return {
+        "chart1": {
+            "dates": sliced_dates,
+            "growth": chart1_growth,
+            "value": chart1_value,
+        },
+        "chart2": {
+            "dates": sliced_dates,
+            "ratio": chart2_ratio,
+            "ma242": chart2_ma242,
+            "upper": chart2_upper,
+            "lower": chart2_lower,
+            "pctB": round(float(pct_b_sliced), 2),
+            "bandwidth": round(float(bandwidth), 2),
+        },
+        "chart3": {
+            "dates": sliced_dates,
+            "diff": chart3_diff,
+            "diff_ma242": chart3_diff_ma242,
+            "mean": round(mean_diff * 100, 2),
+        },
+        "chart4": {
+            "dates": sliced_dates,
+            "rsi": chart4_rsi,
+            "rsi_ma242": chart4_rsi_ma242,
+            "latest_rsi": round(latest_rsi, 2),
+            "latest_rsi_ma": round(latest_rsi_ma, 2),
+        },
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }

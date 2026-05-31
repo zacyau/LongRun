@@ -11,6 +11,9 @@
         <router-link to="/hongli" class="nav-link" active-class="nav-link-active">
           红利之美
         </router-link>
+        <router-link to="/growth-value" class="nav-link" active-class="nav-link-active">
+          成长价值
+        </router-link>
         <router-link to="/macdv" class="nav-link" active-class="nav-link-active">
           趋势信号
         </router-link>

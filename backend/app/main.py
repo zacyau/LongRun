@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from app.config import get_settings
-from app.routers import anchor, hongli, macdv
+from app.routers import anchor, hongli, macdv, growth_value
 from app.tasks.scheduler import start_scheduler, shutdown_scheduler
 
 settings = get_settings()
@@ -68,9 +68,10 @@ app.add_middleware(
 
 # 将各功能模块的路由注册到应用
 # 路由前缀在各自的router定义中指定
-app.include_router(anchor.router)   # 五年之锚相关API
-app.include_router(hongli.router)   # 红利之美相关API
-app.include_router(macdv.router)    # 趋势信号相关API
+app.include_router(anchor.router)        # 五年之锚相关API
+app.include_router(hongli.router)        # 红利之美相关API
+app.include_router(macdv.router)         # 趋势信号相关API
+app.include_router(growth_value.router)  # 成长价值相关API
 
 
 # =============================================================================
@@ -141,7 +142,7 @@ async def root():
     return {
         "message": "Long Run API",
         "version": "1.0.0",
-        "modules": ["五年之锚", "红利之美"],
+        "modules": ["五年之锚", "红利之美", "趋势信号", "成长价值"],
         "docs": "/docs"
     }
 

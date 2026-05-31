@@ -18,6 +18,11 @@ const router = createRouter({
       component: () => import('@/views/HongliView.vue')
     },
     {
+      path: '/growth-value',
+      name: 'growthValue',
+      component: () => import('@/views/GrowthValueView.vue')
+    },
+    {
       path: '/macdv',
       name: 'macdv',
       component: () => import('@/views/MacdvView.vue')
